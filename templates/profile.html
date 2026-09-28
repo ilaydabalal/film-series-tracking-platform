@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Flash Başarı Bildirimi (Yeşil Onay Kutusu) -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div id="toastNotification" class="fixed top-6 right-6 z-50 flex flex-col gap-2 transition-all duration-300">
+            {% for category, message in messages %}
+                <div class="flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl text-xs font-semibold text-white border backdrop-blur-md 
+                    {{ 'bg-emerald-600 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.5)]' if category == 'success' else 'bg-rose-600 border-rose-400' }}">
+                    <svg class="w-5 h-5 text-white flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span>{{ message }}</span>
+                    <button onclick="this.parentElement.remove()" class="ml-2 text-white/80 hover:text-white font-bold">✕</button>
+                </div>
+            {% endfor %}
+        </div>
+        <script>
+            setTimeout(function() {
+                const toast = document.getElementById('toastNotification');
+                if (toast) {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 3500);
+        </script>
+    {% endif %}
+{% endwith %}
+
+<!-- Kaydırma Çubukları Olmayan, Tek Tam Sayfa Sabit Yapı -->
+<div class="fixed inset-0 w-screen h-screen overflow-hidden flex items-center justify-center font-sans text-slate-900 z-0">
+    
+    <div class="absolute inset-0 bg-cover bg-center filter brightness-50 scale-105 pointer-events-none" style="background-image: url('{{ url_for('static', filename='images/show.jpg') }}');"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-red-950/50 to-black/90"></div>
+
+    <div class="relative z-10 bg-[#7f1d1d] border-[3px] border-amber-500/90 rounded-[2rem] p-4 shadow-[0_0_60px_rgba(245,158,11,0.45)] w-full max-w-3xl mx-4 my-auto">
+        
+        <div class="flex justify-around px-4 mb-2.5">
+            {% for _ in range(14) %}
+            <div class="w-3 h-3 rounded-full bg-amber-200 shadow-[0_0_10px_#fde047] animate-pulse"></div>
+            {% endfor %}
+        </div>
+
+        <div class="flex">
+            <div class="flex flex-col justify-around pr-2.5">
+                {% for _ in range(5) %}
+                <div class="w-3 h-3 rounded-full bg-amber-200 shadow-[0_0_10px_#fde047] animate-pulse"></div>
+                {% endfor %}
+            </div>
+
+            <div class="flex-grow rounded-xl p-6 sm:p-8 shadow-inner flex flex-col justify-between" 
+                 style="background-color: #fcf8ee; background-image: repeating-linear-gradient(0deg, transparent, transparent 38px, rgba(139, 69, 19, 0.08) 39px);">
+                
+                <div class="flex items-center justify-between border-b border-amber-900/15 pb-4 mb-4">
+                    <div class="flex items-center gap-4">
+                        <!-- Profil İkonu (Tıklanınca Karakter Seçme Modalı Açar) -->
+<!-- Profil İkonu (Seçilen Avatarı Gösterir) -->
+<div onclick="openAvatarModal()" class="w-14 h-14 rounded-full bg-[#7f1d1d] flex items-center justify-center text-white font-bold text-xl shadow-md flex-shrink-0 border-2 border-amber-400 cursor-pointer overflow-hidden relative group" title="Karakter Değiştir">
+    {% if current_user.avatar and current_user.avatar != '' %}
+        <img src="{{ url_for('static', filename='images/' + current_user.avatar) }}" class="w-full h-full object-cover group-hover:scale-110 transition">
+    {% else %}
+        <span class="group-hover:hidden">{{ current_user.username[0] | upper }}</span>
+        <span class="absolute inset-0 bg-black/50 text-[10px] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition font-sans">Seç</span>
+    {% endif %}
+</div>
+
+                        <div>
+                            <h2 class="text-2xl font-bold tracking-normal text-amber-950 font-serif">{{ current_user.username }}</h2>
+                            <p class="text-[11px] text-rose-800 font-semibold tracking-wider italic mt-0.5">Berilay Sinemasever</p>
+                        </div>
+                    </div>
+
+                    <div class="hidden sm:flex gap-5 text-center">
+                        <div>
+                            <span class="block text-xl font-bold text-emerald-800 font-serif">{{ total_watched }}</span>
+                            <span class="text-[9px] tracking-wider text-slate-700 font-bold">İzlenen Film</span>
+                        </div>
+                        <div class="border-l border-amber-900/15 pl-5">
+                            <span class="block text-base font-bold text-red-800 italic truncate max-w-[120px] font-serif">{{ fav_genre }}</span>
+                            <span class="text-[9px] tracking-wider text-slate-700 font-bold">Favori Tür</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gelen Partnerlik ve Arkadaşlık İstekleri Listesi -->
+                {% if pending_requests or pending_friend_requests %}
+                <div class="mb-4 space-y-2">
+                    {% if pending_requests %}
+                    <div class="bg-amber-100/90 border border-amber-400 rounded-xl p-2.5 shadow-sm">
+                        <h4 class="text-xs font-bold text-amber-950 uppercase tracking-wider mb-1 font-serif">Gelen Partnerlik Teklifleri</h4>
+                        <div class="space-y-1.5">
+                            {% for req, sender in pending_requests %}
+                            <div class="flex items-center justify-between bg-white/90 p-2 rounded-lg border border-amber-200 text-xs">
+                                <span class="font-semibold text-slate-800"><strong>{{ sender.username }}</strong> size partnerlik teklif etti.</span>
+                                <div class="flex gap-2">
+                                    <a href="{{ url_for('partner_action', req_id=req.id, action='accept') }}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg font-bold transition shadow">Kabul Et</a>
+                                    <a href="{{ url_for('partner_action', req_id=req.id, action='reject') }}" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded-lg font-bold transition shadow">Reddet</a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if pending_friend_requests %}
+                    <div class="bg-purple-100/90 border border-purple-400 rounded-xl p-2.5 shadow-sm">
+                        <h4 class="text-xs font-bold text-purple-950 uppercase tracking-wider mb-1 font-serif">Gelen Arkadaşlık İstekleri</h4>
+                        <div class="space-y-1.5">
+                            {% for req, sender in pending_friend_requests %}
+                            <div class="flex items-center justify-between bg-white/90 p-2 rounded-lg border border-purple-200 text-xs">
+                                <span class="font-semibold text-slate-800"><strong>{{ sender.username }}</strong> arkadaş olmak istiyor.</span>
+                                <div class="flex gap-2">
+                                    <form action="{{ url_for('accept_friend', req_id=req.id) }}" method="POST"><button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg font-bold transition shadow">Kabul Et</button></form>
+                                    <form action="{{ url_for('reject_friend', req_id=req.id) }}" method="POST"><button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded-lg font-bold transition shadow">Reddet</button></form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Kullanıcı Adı ve Şifre Güncelleme Alanı -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    
+                    <!-- Kullanıcı Adı Değiştir -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-amber-950 tracking-wide mb-1 font-serif">Kullanıcı Adını Değiştir</label>
+                        <form action="{{ url_for('update_username') }}" method="POST" class="flex gap-2 items-center">
+                            <input type="text" name="username" value="{{ current_user.username }}" required class="flex-grow bg-white/80 border border-amber-900/20 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#7f1d1d] shadow-sm">
+                            <button type="submit" class="bg-[#7f1d1d] hover:bg-red-900 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow whitespace-nowrap">Güncelle</button>
+                        </form>
+                    </div>
+
+                    <!-- Şifre Değiştir -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-amber-950 tracking-wide mb-1 font-serif">Şifre Değiştir</label>
+                        <form action="{{ url_for('update_password') }}" method="POST" class="flex gap-2 items-center">
+                            <div class="relative flex-grow">
+                                <input type="password" name="new_password" id="passwordInput" placeholder="Yeni şifrenizi girin..." required class="w-full bg-white/80 border border-amber-900/20 rounded-xl pl-3 pr-10 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#7f1d1d] shadow-sm">
+                                
+                                <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 focus:outline-none">
+                                    <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <button type="submit" class="bg-[#7f1d1d] hover:bg-red-900 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow whitespace-nowrap">Şifreyi Güncelle</button>
+                        </form>
+                    </div>
+
+                </div>
+
+                <!-- Bağlı Partner Durumu -->
+                <div class="mb-4">
+                    <label class="block text-[11px] font-bold text-amber-950 tracking-wide mb-1 font-serif">Bağlı Partner Durumu</label>
+                    {% if partner %}
+                    <div class="bg-emerald-100/80 border border-emerald-400 rounded-xl p-2 flex justify-between items-center text-xs shadow-sm">
+                        <span class="text-emerald-950 font-medium">Partner: <strong class="text-slate-900">{{ partner.username }}</strong></span>
+                        <form action="{{ url_for('remove_partner') }}" method="POST">
+                            <button type="submit" class="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded-lg text-xs font-bold transition">Kaldır</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="bg-amber-100/70 border border-amber-300/80 rounded-xl p-2 text-xs text-amber-950 font-normal shadow-sm italic">
+                        Henüz bir partner eklenmedi.
+                    </div>
+                    {% endif %}
+                </div>
+
+<!-- Alt Butonlar -->
+                <div class="flex gap-3 w-full pt-3 border-t border-amber-900/15">
+                    <a href="{{ url_for('pool') }}" class="flex-grow text-center bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow font-serif">Film Seç</a>
+                    <a href="{{ url_for('series_pool') }}" class="flex-grow text-center bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow font-serif">Dizi Seç</a>                    
+                    <a href="{{ url_for('logout') }}" class="bg-[#7f1d1d] hover:bg-red-900 text-white px-6 py-2.5 rounded-xl text-xs font-semibold transition shadow font-serif">Çıkış Yap</a>
+                </div>
+
+            </div>
+
+            <div class="flex flex-col justify-around pl-2.5">
+                {% for _ in range(5) %}
+                <div class="w-3 h-3 rounded-full bg-amber-200 shadow-[0_0_10px_#fde047] animate-pulse"></div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="flex justify-around px-4 mt-2.5">
+            {% for _ in range(14) %}
+            <div class="w-3 h-3 rounded-full bg-amber-200 shadow-[0_0_10px_#fde047] animate-pulse"></div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+
+<!-- Karakter Seçme Modalı (Sadece .png Dosyaları) -->
+<div id="avatarModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-[#14181c] border border-amber-500/40 rounded-3xl p-6 max-w-xl w-full shadow-2xl relative flex flex-col">
+        <h3 class="text-lg font-serif font-bold text-amber-300 mb-4 text-center">Profil Karakterini Seç</h3>
+        
+        <form action="{{ url_for('update_avatar') }}" method="POST">
+            <div class="grid grid-cols-4 sm:grid-cols-4 gap-4 mb-6 max-h-[50vh] overflow-y-auto p-2">
+                {% set avatars = ['Anger.png', 'Anxiety.png', 'Disgust.png', 'Ennui.png', 'Envy.png', 'Fear.png', 'Joy.png', 'Sadness.png'] %}
+                {% for av in avatars %}
+                <label class="cursor-pointer flex flex-col items-center p-2 rounded-2xl border-2 transition hover:border-amber-400 {{ 'border-amber-400 bg-amber-500/10' if current_user.avatar == av else 'border-white/10 bg-black/40' }}">
+                    <input type="radio" name="avatar" value="{{ av }}" {% if current_user.avatar == av %}checked{% endif %} class="hidden peer">
+                    <img src="{{ url_for('static', filename='images/' + av) }}" class="w-16 h-16 rounded-full object-cover border border-white/20 peer-checked:ring-4 peer-checked:ring-amber-400 shadow-lg">
+                    <span class="text-[10px] text-slate-300 mt-2 capitalize font-semibold">{{ av.split('.')[0] }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeAvatarModal()" class="w-1/2 bg-white/10 hover:bg-white/20 text-slate-200 py-2.5 rounded-xl text-xs font-semibold transition">Vazgeç</button>
+                <button type="submit" class="w-1/2 bg-[#7f1d1d] hover:bg-red-900 text-white py-2.5 rounded-xl text-xs font-bold transition shadow">Seçimi Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scriptler -->
+<script>
+    function openAvatarModal() {
+        document.getElementById('avatarModal').classList.remove('hidden');
+    }
+    function closeAvatarModal() {
+        document.getElementById('avatarModal').classList.add('hidden');
+    }
+
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('passwordInput');
+        const eyeIcon = document.getElementById('eyeIcon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.05 10.05 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+            `;
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            `;
+        }
+    }
+</script>
+{% endblock %}

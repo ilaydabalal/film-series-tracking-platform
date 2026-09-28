@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-10 font-sans text-slate-100">
+    <h2 class="text-2xl font-serif font-bold text-white mb-8 border-b border-white/10 pb-3">Kayıtlı Üyeler</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for u in users %}
+        <div class="bg-black/30 border border-white/10 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-amber-400/50 transition">
+            
+            <!-- Sol Kısım: Tıklanınca O Üyenin Film/Dizi Şeridi Modalı Açılır -->
+            <div onclick="openMemberFilmStrip('{{ u.username }}')" class="flex items-center gap-4 cursor-pointer group w-full sm:w-auto">
+                <div class="w-12 h-12 rounded-full overflow-hidden border border-amber-500/50 flex items-center justify-center bg-[#7f1d1d] shadow flex-shrink-0">
+                    {% if u.avatar %}
+                        <img src="{{ url_for('static', filename='images/' ~ u.avatar) }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <span class="text-white font-bold text-lg">{{ u.username[0] | upper }}</span>
+                    {% endif %}
+                </div>
+                <div class="overflow-hidden">
+                    <h4 class="font-bold text-white text-base group-hover:text-amber-300 transition truncate">{{ u.username }}</h4>
+                    <p class="text-xs text-slate-400 mt-0.5">İzlenen Film: <span class="text-emerald-400 font-semibold">{{ user_stats[u.id]['total'] }} Film</span></p>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Favori Tür: {{ user_stats[u.id]['fav_genre'] }}</p>
+                </div>
+            </div>
+
+            <!-- Sağ Kısım: Arkadaşlık ve Partnerlik İstek Butonları -->
+            {% if u.id != current_user.id %}
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 w-full sm:w-auto mt-3 sm:mt-0">
+                
+                <!-- Arkadaş Ekle / İptal Et Butonu -->
+                {% set f_status = friend_statuses.get(u.id) %}
+                {% if not f_status or f_status == 'rejected' %}
+                <form action="{{ url_for('send_friend_request', user_id=u.id) }}" method="POST" class="w-full sm:w-auto">
+                    <button type="submit" class="w-full bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shadow whitespace-nowrap">
+                        Arkadaş Ekle
+                    </button>
+                </form>
+                {% elif f_status == 'pending' %}
+                <form action="{{ url_for('cancel_friend_request', user_id=u.id) }}" method="POST" class="w-full sm:w-auto">
+                    <button type="submit" class="w-full bg-amber-600 hover:bg-rose-700 text-white px-3 py-2 rounded-xl text-xs font-semibold transition shadow whitespace-nowrap" title="İsteği Geri Çek">
+                        İsteği İptal Et
+                    </button>
+                </form>
+                {% elif f_status == 'accepted' %}
+                <span class="text-[11px] text-emerald-400 px-3 py-1 bg-emerald-500/10 rounded-xl font-medium text-center w-full sm:w-auto">Arkadaşsınız</span>
+                {% endif %}
+
+                <!-- Partner Ol / Teklifi İptal Et / Partnersiniz Durumu -->
+                {% set p_status = partner_statuses.get(u.id) %}
+                {% if current_user.partner_id == u.id %}
+                    <span class="text-[11px] text-emerald-400 px-3 py-1 bg-emerald-500/10 rounded-xl font-medium text-center w-full sm:w-auto">Partnersiniz</span>
+                {% elif p_status == 'pending' %}
+                    <form action="{{ url_for('cancel_partner_request', user_id=u.id) }}" method="POST" class="w-full sm:w-auto">
+                        <button type="submit" class="w-full bg-rose-950 hover:bg-rose-900 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition shadow whitespace-nowrap" title="Teklifi Geri Çek">
+                            Teklifi İptal Et
+                        </button>
+                    </form>
+                {% elif not current_user.partner_id and not u.partner_id %}
+                    <form action="{{ url_for('send_partner_request', user_id=u.id) }}" method="POST" class="w-full sm:w-auto">
+                        <button type="submit" class="w-full bg-rose-950 hover:bg-rose-900 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow-md whitespace-nowrap flex items-center justify-center gap-2 group border border-rose-800/50">
+                            <svg class="w-4 h-4 fill-current text-rose-300 group-hover:scale-110 transition transform" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                            Partner Ol
+                        </button>
+                    </form>
+                {% endif %}
+
+            </div>
+            {% endif %}
+
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Üye Film / Dizi Şeridi Modalı (Navbar'ın altında kalır, üst kısmı etkilemez) -->
+<div id="memberFilmModal" class="fixed inset-x-0 bottom-0 top-[69px] bg-black/60 backdrop-blur-md hidden z-40 flex items-center justify-center p-4">
+<!-- DİKKAT: Buradaki border-amber-500/40 sınıfını siliyoruz -->
+<div id="modalBoxWrapper" style="border: 2px solid rgba(245, 158, 11, 0.4);" class="relative rounded-3xl p-6 max-w-6xl w-full shadow-2xl overflow-hidden bg-[#050608]/95 max-h-[90vh] flex flex-col transition-all duration-300">
+            <div id="modalHeaderRow" class="relative z-10 flex flex-wrap justify-between items-center mb-4 border-b border-amber-500/30 pb-3 flex-shrink-0 gap-3">
+            <div class="flex items-center gap-4">
+                <h3 id="modalMemberTitle" class="text-xl font-serif font-bold text-amber-300">Film Şeridi</h3>
+
+                <div class="bg-black/80 border border-white/15 p-1 rounded-xl flex items-center gap-1 shadow-inner">
+                    <button id="switchMovieBtn" onclick="switchMediaType('movie')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 shadow">Filmler</button>
+                    <button id="switchSeriesBtn" onclick="switchMediaType('series')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white">Diziler</button>
+                </div>
+            </div>
+
+            <button onclick="closeMemberFilmModal()" class="bg-rose-950 hover:bg-rose-900 text-white px-5 py-2 rounded-full text-xs font-bold transition shadow-lg">Kapat</button>
+        </div>
+
+        <div class="relative z-10 mb-4 flex-shrink-0">
+            <button id="topFourToggleBtn" onclick="toggleMemberTopFour()" class="w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 py-2.5 px-4 rounded-xl text-xs font-bold transition flex justify-between items-center shadow-md">
+                <span id="topFourToggleText" class="flex items-center gap-2">Favori Filmler</span>
+                <span id="memberTopFourArrow" class="text-amber-400 font-bold">▼</span>
+            </button>
+            
+            <div id="memberTopFourContainer" class="hidden mt-3 bg-black/90 p-4 rounded-2xl border border-amber-500/40 shadow-2xl">
+                <div id="memberTopFourGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+            </div>
+        </div>
+
+        <div class="relative z-10 flex flex-wrap gap-3 items-center mb-4 bg-black/60 p-3 rounded-2xl border border-white/10 flex-shrink-0">
+            <input type="text" id="memberSearchInput" oninput="renderMemberContent()" placeholder="Film/Dizi veya yönetmen ara..." class="flex-grow bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400">
+            
+            <select id="memberRatingFilter" onchange="renderMemberContent()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400">
+                <option value="">Tüm Puanlar</option>
+                <option value="5">5 Yıldız</option>
+                <option value="4">4 Yıldız</option>
+                <option value="3">3 Yıldız</option>
+                <option value="2">2 Yıldız</option>
+                <option value="1">1 Yıldız</option>
+            </select>
+
+            <select id="memberFavoriteFilter" onchange="renderMemberContent()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400">
+                <option value="" id="allOptText">Tüm Filmler</option>
+                <option value="favorite">Sadece Kalplenenler (Favoriler)</option>
+            </select>
+        </div>
+
+        <div id="memberFilmContainer" class="relative z-10 overflow-x-auto overflow-y-hidden py-6 my-auto flex-grow flex items-center scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-amber-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-black/80 [&::-webkit-scrollbar-track]:rounded-full"></div>
+    </div>
+</div>
+
+<script>
+    const memberWatchedData = {{ member_movies_data | tojson }};
+    const memberTopFourData = {{ member_top_four_data | tojson }};
+    const memberSeriesWatchedData = {{ member_series_data | tojson }};
+    const memberTopFourSeriesData = {{ member_top_four_series_data | tojson }};
+
+    let currentUsername = "";
+    let currentMediaType = 'movie';
+
+    function openMemberFilmStrip(username) {
+        currentUsername = username;
+        currentMediaType = 'movie';
+        updateModalTheme();
+        renderMemberContent();
+        document.getElementById('memberFilmModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function switchMediaType(type) {
+        currentMediaType = type;
+        updateModalTheme();
+        renderMemberContent();
+    }
+function updateModalTheme() {
+        const modalBox = document.getElementById('modalBoxWrapper');
+        const modalHeader = document.getElementById('modalHeaderRow');
+        const titleEl = document.getElementById('modalMemberTitle');
+        const movieBtn = document.getElementById('switchMovieBtn');
+        const seriesBtn = document.getElementById('switchSeriesBtn');
+        const topFourBtn = document.getElementById('topFourToggleBtn');
+        const topFourText = document.getElementById('topFourToggleText');
+        const topFourArrow = document.getElementById('memberTopFourArrow');
+        const allOptText = document.getElementById('allOptText');
+        const topFourContainer = document.getElementById('memberTopFourContainer'); // YENİ: Favori kutusu
+        const container = document.getElementById('memberFilmContainer'); // Scrollbar için konteyner
+
+        if (currentMediaType === 'movie') {
+            titleEl.innerHTML = `<span class="text-amber-400 font-semibold">${currentUsername}</span> <span class="text-amber-400">- Film Şeridi</span>`;
+            modalBox.style.borderColor = "rgba(245, 158, 11, 0.4)"; // Amber
+            modalHeader.className = "relative z-10 flex flex-wrap justify-between items-center mb-4 border-b border-amber-500/30 pb-3 flex-shrink-0 gap-3";
+            movieBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 shadow";
+            seriesBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white";
+            topFourBtn.className = "w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 py-2.5 px-4 rounded-xl text-xs font-bold transition flex justify-between items-center shadow-md";
+            topFourText.innerHTML = "Favori Filmler";
+            topFourArrow.className = "text-amber-400 font-bold";
+            allOptText.innerText = "Tüm Filmler";
+            topFourContainer.className = "hidden mt-3 bg-black/90 p-4 rounded-2xl border border-amber-500/40 shadow-2xl"; // Amber border
+            
+            // Film seçiliyken scrollbar amber
+            container.className = "relative z-10 overflow-x-auto overflow-y-hidden py-6 my-auto flex-grow flex items-center scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-amber-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-black/80 [&::-webkit-scrollbar-track]:rounded-full";
+        } else {
+            titleEl.innerHTML = `<span class="text-cyan-400 font-semibold">${currentUsername}</span> <span class="text-cyan-400">- Dizi Şeridi</span>`;
+            modalBox.style.borderColor = "rgba(6, 182, 212, 0.8)"; // Cyan
+            modalHeader.className = "relative z-10 flex flex-wrap justify-between items-center mb-4 border-b border-cyan-500/30 pb-3 flex-shrink-0 gap-3";
+            movieBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white";
+            seriesBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-cyan-500 text-slate-950 shadow";
+            topFourBtn.className = "w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 py-2.5 px-4 rounded-xl text-xs font-bold transition flex justify-between items-center shadow-md";
+            topFourText.innerHTML = "Favori Diziler";
+            topFourArrow.className = "text-cyan-400 font-bold";
+            allOptText.innerText = "Tüm Diziler";
+            topFourContainer.className = "hidden mt-3 bg-black/90 p-4 rounded-2xl border border-cyan-500/50 shadow-2xl"; // Cyan border
+            
+            // Dizi seçiliyken scrollbar cyan
+            container.className = "relative z-10 overflow-x-auto overflow-y-hidden py-6 my-auto flex-grow flex items-center scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-cyan-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-black/80 [&::-webkit-scrollbar-track]:rounded-full";
+        }
+    }
+    function toggleMemberTopFour() {
+        const container = document.getElementById('memberTopFourContainer');
+        const arrow = document.getElementById('memberTopFourArrow');
+        container.classList.toggle('hidden');
+        arrow.innerText = container.classList.contains('hidden') ? '▼' : '▲';
+    }
+
+    function renderMemberContent() {
+        let topFourGrid = document.getElementById('memberTopFourGrid');
+        let userTopFour = currentMediaType === 'movie' 
+            ? (memberTopFourData[currentUsername] || [null, null, null, null])
+            : (memberTopFourSeriesData[currentUsername] || [null, null, null, null]);
+        
+        let topFourHtml = '';
+        let badgeColor = currentMediaType === 'movie' ? 'bg-amber-500 text-slate-950' : 'bg-cyan-500 text-slate-950';
+        let hoverColor = currentMediaType === 'movie' ? 'hover:text-amber-300' : 'hover:text-cyan-300';
+
+        userTopFour.forEach((item, index) => {
+            if (item) {
+                let linkUrl = currentMediaType === 'movie' ? `/movie/${item.movie_id}` : `/series/${item.series_id}`;
+                topFourHtml += `
+                    <div class="bg-black/80 border border-white/15 rounded-xl p-3 flex flex-col items-center justify-between relative">
+                        <span class="absolute top-2 left-2 ${badgeColor} px-1.5 py-0.5 rounded text-[9px] font-extrabold z-10">#${index + 1}</span>
+                        <a href="${linkUrl}" class="block mt-2">
+                            <img src="${item.poster_url}" class="w-28 h-40 object-cover rounded-xl shadow-lg mb-2 border border-white/15 hover:scale-105 transition">
+                        </a>
+                        <a href="${linkUrl}" class="text-xs font-bold text-white text-center truncate w-full ${hoverColor} transition">${item.title}</a>
+                    </div>
+                `;
+            } else {
+                topFourHtml += `
+                    <div class="bg-black/80 border border-white/15 rounded-xl p-3 flex flex-col items-center justify-center relative min-h-[160px]">
+                        <span class="absolute top-2 left-2 ${badgeColor} px-1.5 py-0.5 rounded text-[9px] font-extrabold z-10">#${index + 1}</span>
+                        <span class="text-xs text-slate-500 italic">Boş Slot</span>
+                    </div>
+                `;
+            }
+        });
+        topFourGrid.innerHTML = topFourHtml;
+
+        let container = document.getElementById('memberFilmContainer');
+        let rawItems = currentMediaType === 'movie' 
+            ? (memberWatchedData[currentUsername] || [])
+            : (memberSeriesWatchedData[currentUsername] || []);
+
+        const query = document.getElementById('memberSearchInput').value.toLowerCase().trim();
+        const targetRating = document.getElementById('memberRatingFilter').value;
+        const favoriteOnly = document.getElementById('memberFavoriteFilter').value === 'favorite';
+
+        let items = rawItems.filter(item => {
+            let title = (item.title || "").toLowerCase();
+            let director = (item.director || "").toLowerCase();
+            let rating = Math.floor(item.user_rating || 0);
+            let isFav = item.user_favorite ? true : false;
+
+            let matchesQuery = title.includes(query) || director.includes(query);
+            let matchesRating = (targetRating === "" || rating === parseInt(targetRating));
+            let matchesFavorite = (!favoriteOnly || isFav);
+
+            return matchesQuery && matchesRating && matchesFavorite;
+        });
+
+        if (items.length === 0) {
+            let labelText = currentMediaType === 'movie' ? 'film' : 'dizi';
+            container.innerHTML = `<div class="text-slate-400 text-sm py-16 text-center w-full">Bu kullanıcının kriterlere uygun izlediği ${labelText} bulunmuyor.</div>`;
+        } else {
+            let borderStyle = currentMediaType === 'movie' ? 'border-amber-500/70 hover:border-amber-300' : 'border-cyan-500/70 hover:border-cyan-300';
+            let titleHover = currentMediaType === 'movie' ? 'group-hover:text-amber-300' : 'group-hover:text-cyan-300';
+            let ratingColor = currentMediaType === 'movie' ? 'text-amber-400' : 'text-cyan-400';
+
+            let html = `
+                <div class="relative bg-black border-y-[22px] border-black shadow-[0_0_50px_rgba(0,0,0,0.95)] py-10 px-8 flex items-center gap-10 min-w-max my-auto">
+                    <div class="absolute top-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        ${'<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>'.repeat(40)}
+                    </div>
+                    <div class="absolute bottom-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        ${'<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>'.repeat(40)}
+                    </div>
+            `;
+
+            items.forEach(item => {
+                let detailUrl = currentMediaType === 'movie' ? `/movie/${item.movie_id}` : `/series/${item.series_id}`;
+                html += `
+                    <div class="film-card bg-[#121418] border-2 ${borderStyle} rounded-xl p-4 w-52 flex flex-col items-center shadow-[0_15px_30px_rgba(0,0,0,0.9)] relative group transition transform hover:-translate-y-2 flex-shrink-0">
+                        <a href="${detailUrl}" class="w-full flex flex-col items-center">
+                            <img src="${item.poster_url}" class="w-36 h-48 object-cover rounded-lg shadow-md mb-3 border border-white/10 group-hover:scale-105 transition">
+                            <h4 class="font-serif font-bold text-white text-xs text-center h-12 flex items-center justify-center w-full leading-tight mb-1 ${titleHover} transition">${item.title}</h4>
+                        </a>
+                        <span class="text-[10px] text-emerald-400 mb-2 font-semibold">İzleme: ${item.scheduled_date || 'Belirtilmemiş'}</span>
+                        <div class="w-full space-y-1 text-[11px] bg-black/80 p-2 rounded-lg border border-white/10 shadow-inner">
+                            <div class="flex justify-between items-center text-rose-400 font-semibold"><span>Sen:</span><span class="${ratingColor}">★ ${item.user_rating}</span></div>
+                            <div class="flex justify-between items-center text-cyan-400 font-semibold"><span>Partner:</span><span class="${ratingColor}">★ ${item.partner_rating}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+    }
+
+    function closeMemberFilmModal() {
+        document.getElementById('memberFilmModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById('memberFilmContainer');
+        if (container) {
+            container.addEventListener('wheel', function(e) {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    container.scrollLeft += e.deltaY * 1.5;
+                }
+            }, { passive: false });
+        }
+    });
+</script>
+{% endblock %}

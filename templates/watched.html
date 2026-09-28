@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-10 font-sans text-slate-100">
+    <h1 class="text-3xl font-serif font-bold text-white mb-2">İzlenen Filmler</h1>
+    <p class="text-slate-400 text-xs mb-8">Bugüne kadar izlediğiniz ve onayladığınız tüm filmler.</p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {% for item in watched_items %}
+        <div class="bg-black/30 border border-emerald-500/50 rounded-xl overflow-hidden shadow-xl flex flex-col group">
+            <div class="relative h-64 overflow-hidden">
+                <a href="{{ url_for('movie_detail', movie_id=item.movie_id) }}">
+                    <img src="{{ item.movie.poster_url }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                </a>
+            </div>
+            <div class="p-4 bg-black/60 flex flex-col flex-grow justify-between">
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-emerald-400 mb-1 block">İzlendi Tarihi: {{ item.scheduled_date }}</span>
+                    <a href="{{ url_for('movie_detail', movie_id=movie_id) if item.movie_id else '#' }}">
+                        <h3 class="font-bold text-slate-100 text-sm leading-snug mb-2">{{ item.movie.title }}</h3>
+                    </a>
+                </div>
+                <div class="text-xs text-amber-400 font-bold">
+                    Puan: ★ {{ item.user_rating }} / 5 {% if item.user_favorite %}❤️{% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-slate-400 text-sm col-span-full">Henüz izlendi olarak işaretlenen bir film bulunmuyor.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="relative w-full min-h-screen bg-[#0e1113] text-slate-100 pb-28 overflow-x-hidden font-sans">
+    
+    {% if series.backdrop_url %}
+    <div class="absolute inset-0 h-[750px] bg-cover bg-center opacity-75 filter blur-[0.5px]" style="background-image: url('{{ series.backdrop_url }}');"></div>
+    <div class="absolute inset-0 h-[750px] bg-gradient-to-b from-[#0e1113]/20 via-[#0e1113]/70 to-[#0e1113]"></div>
+    {% endif %}
+
+    <div class="relative w-full px-6 sm:px-12 lg:px-24 pt-12">
+        <div class="flex flex-col lg:flex-row gap-12 items-center lg:items-start">
+            <img src="{{ series.poster_url }}" class="w-72 sm:w-80 h-[480px] object-cover rounded-lg shadow-2xl shadow-black/95 z-10 flex-shrink-0 border border-white/10">
+            
+            <div class="flex-grow text-left z-10 w-full">
+                <div class="flex flex-wrap items-baseline gap-3 mb-2">
+                    <h1 class="text-4xl sm:text-6xl font-serif font-bold text-white tracking-wide drop-shadow-lg">{{ series.title }}</h1>
+                    {% if series.first_air_date %}
+                    <span class="text-xl sm:text-2xl font-serif text-slate-300 font-light">{{ series.first_air_date[:4] }}</span>
+                    {% endif %}
+                </div>
+
+                {% if series.creator %}
+                <div class="text-base text-slate-300 font-sans mb-4">
+                    Yapımcı: <a href="{{ url_for('person_detail', name=series.creator) }}" class="font-semibold text-amber-300 underline decoration-amber-500/60 underline-offset-4 hover:text-white transition">{{ series.creator }}</a>
+                </div>
+                {% endif %}
+
+                <div class="flex flex-wrap items-center gap-3 text-sm text-slate-300 mb-6 font-sans">
+                    {% if series.first_air_date %}<span>İlk Yayın: {{ series.first_air_date }}</span>{% endif %}
+                    {% if series.genres %}<span>• {{ series.genres }}</span>{% endif %}
+                    {% if series.number_of_seasons %}<span>• Sezon: {{ series.number_of_seasons }}</span>{% endif %}
+                    {% if series.number_of_episodes %}<span>• Bölüm: {{ series.number_of_episodes }}</span>{% endif %}
+                    {% if series.original_language %}<span>• Dil: {{ series.original_language | upper }}</span>{% endif %}
+                </div>
+
+                <div class="mb-8 text-slate-100 text-base sm:text-lg leading-relaxed font-light max-w-4xl drop-shadow">
+                    <h3 class="text-xs text-rose-500 uppercase tracking-widest font-bold mb-2">Özet</h3>
+                    <p>{{ series.overview }}</p>
+                </div>
+
+                <div class="flex gap-4 mt-2">
+                    <a href="{{ url_for('series_pool') }}" class="bg-white/10 hover:bg-white/20 text-slate-200 px-6 py-2.5 rounded-lg text-sm font-medium transition backdrop-blur">Dizi Havuzuna Dön</a>
+                    <a href="{{ url_for('add_to_series_month_pool', series_id=series.id) }}" class="bg-rose-600 hover:bg-rose-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition shadow-lg">Bu Aya Ekle</a>
+                </div>
+            </div>
+
+            <!-- Sağ Taraf: Sezon, Takvim Durumu ve Değerlendirmeler -->
+            <div class="w-full lg:w-80 bg-black/60 backdrop-blur-md border border-white/15 rounded-xl p-5 z-10 shadow-2xl flex flex-col gap-4 flex-shrink-0">
+                <div>
+                    <p class="text-[10px] text-slate-300 uppercase tracking-widest font-bold">SEZON SAYISI</p>
+                    <p class="text-base font-bold text-slate-100 mt-0.5">{{ series.number_of_seasons if series.number_of_seasons else "-" }}</p>
+                </div>
+                <hr class="border-white/10">
+                <div>
+                    <p class="text-[10px] text-slate-300 uppercase tracking-widest font-bold">TOPLAM BÖLÜM</p>
+                    <p class="text-base font-bold text-emerald-400 mt-0.5">{{ series.number_of_episodes if series.number_of_episodes else "-" }}</p>
+                </div>
+                <hr class="border-white/10">
+
+                <div>
+                    <div class="flex justify-between items-center cursor-pointer mb-1.5" onclick="toggleCalendarDropdown('seriesCalendarBox', 'seriesCalendarArrow')">
+                        <p class="text-[10px] text-slate-300 uppercase tracking-widest font-bold">TAKVİM DURUMU ({{ all_calendar_entries|length }})</p>
+                        <span id="seriesCalendarArrow" class="text-cyan-400 font-bold text-xs transition-transform duration-300">▼</span>
+                    </div>
+
+                    {% if all_calendar_entries %}
+                        <div id="seriesCalendarBox" class="hidden space-y-1.5 text-xs max-h-48 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+                            {% for entry in all_calendar_entries %}
+                            <div class="bg-black/40 p-2 rounded border border-white/10 flex justify-between items-center">
+                                <span class="text-amber-300 font-semibold">{{ entry.scheduled_date }} ({{ entry.time_slot }})</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold {{ 'bg-emerald-600 text-white' if entry.is_watched else 'bg-rose-600/30 text-rose-300' }}">
+                                    {{ 'İzlendi' if entry.is_watched else 'Planlı' }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-slate-500 text-[11px]">Bu dizi henüz takvimde planlanmamış.</p>
+                    {% endif %}
+                </div>
+                <hr class="border-white/10">
+
+                <div>
+                    <div class="flex justify-between items-center cursor-pointer mb-3" onclick="toggleCalendarDropdown('seriesReviewsBox', 'seriesReviewsArrow')">
+                        <p class="text-[10px] text-slate-300 uppercase tracking-widest font-bold">DİZİ DEĞERLENDİRMELERİ ({{ all_calendar_entries|length }})</p>
+                        <span id="seriesReviewsArrow" class="text-cyan-400 font-bold text-xs transition-transform duration-300">▼</span>
+                    </div>
+
+                    <div id="seriesReviewsBox" class="hidden space-y-4 max-h-80 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+                        {% if all_calendar_entries %}
+                            {% for entry in all_calendar_entries %}
+                            <div class="bg-black/60 border border-white/10 rounded-xl p-3.5 space-y-3 shadow">
+                                <!-- Senin Değerlendirmen -->
+                                <div onclick="openInteractiveReviewModal('Değerlendirme Düzenle ({{ entry.scheduled_date }})', '{{ entry.id }}', '{{ entry.user_rating if entry.user_rating else 0 }}', '{{ entry.user_comment if entry.user_comment else '' }}', {{ 'true' if entry.user_favorite else 'false' }}, '{{ entry.scheduled_date }}')" class="bg-black/70 p-3 rounded-lg border border-white/10 cursor-pointer hover:border-cyan-500 transition shadow">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-rose-400 font-bold text-[11px]">İzleme: {{ entry.scheduled_date }} (Düzenle)</span>
+                                        <span class="text-[10px] text-emerald-400 font-semibold">{{ 'İzlendi' if entry.is_watched else 'Planlı' }}</span>
+                                    </div>
+                                    {% if entry.user_rating and entry.user_rating > 0 %}
+                                    <div class="text-amber-400 font-bold mb-1">★ {{ entry.user_rating }} / 5 {% if entry.user_favorite %}❤️{% endif %}</div>
+                                    <p class="text-slate-300 text-[11px] italic line-clamp-2">
+                                        "{{ entry.user_comment if entry.user_comment else 'Yorum yazılmadı.' }}"
+                                    </p>
+                                    {% else %}
+                                    <p class="text-slate-500 text-[11px]">Puan ve yorum eklemek için tıklayın.</p>
+                                    {% endif %}
+                                </div>
+
+                                <div class="bg-black/70 p-3 rounded-lg border border-white/10 shadow">
+                                    <!-- Başlık boyutunu text-sm veya text-xs olarak küçülttük -->
+                                    <span class="text-cyan-400 font-bold block mb-1 text-sm">Partner Puanı & Yorumu</span>
+                                    {% if entry.partner_rating and entry.partner_rating > 0 %}
+                                    <div class="text-amber-400 font-bold mb-1">★ {{ entry.partner_rating }} / 5 {% if entry.partner_favorite %}❤️{% endif %}</div>
+                                    <p class="text-slate-300 text-[11px] italic line-clamp-2">
+                                        "{{ entry.partner_comment if entry.partner_comment else 'Yorum yazılmadı.' }}"
+                                    </p>
+                                    {% else %}
+                                    <p class="text-slate-500 text-[11px]">Partner değerlendirmesi bulunmuyor.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-slate-500 text-[11px]">Bu dizi henüz takvimde planlanmamış.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oyuncu Kadrosu (Tıklanabilir) -->
+        {% if series.cast_list and series.cast_images %}
+        <div class="mt-20 z-10 relative">
+            <h3 class="text-xl font-serif font-bold text-white mb-6 border-b border-white/10 pb-2">Oyuncu Kadrosu</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-10 gap-4">
+                {% set names = series.cast_list.split(',') %}
+                {% set imgs = series.cast_images.split('|') %}
+                {% for i in range(names|length) %}
+                {% set actor_name = names[i].strip() %}
+                <a href="{{ url_for('person_detail', name=actor_name) }}" class="bg-black/30 border border-white/10 rounded-lg overflow-hidden shadow-md flex flex-col hover:border-amber-400/60 transition group">
+                    <img src="{{ imgs[i] }}" class="w-full h-36 object-cover group-hover:scale-105 transition duration-300" alt="{{ actor_name }}">
+                    <div class="p-2.5 text-center flex-grow flex items-center justify-center bg-black/50">
+                        <p class="text-slate-200 text-xs font-medium leading-snug group-hover:text-amber-300 transition">{{ actor_name }}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Galeri -->
+        <div class="mt-20 z-10 relative">
+            <h3 class="text-xl font-serif font-bold text-white mb-6 border-b border-white/10 pb-2">Galeri</h3>
+            <div class="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full">
+                {% if series.backdrops_gallery %}
+                    {% for b_url in series.backdrops_gallery.split('||') %}
+                    <img src="{{ b_url }}" onclick="openImageModal(this.src)" class="w-72 h-40 object-cover rounded-lg border border-white/10 flex-shrink-0 shadow-lg cursor-pointer hover:scale-105 transition">
+                    {% endfor %}
+                {% endif %}
+                {% if series.posters_gallery %}
+                    {% for p_url in series.posters_gallery.split('||') %}
+                    <img src="{{ p_url }}" onclick="openImageModal(this.src)" class="w-40 h-60 object-cover rounded-lg border border-white/10 flex-shrink-0 shadow-lg cursor-pointer hover:scale-105 transition">
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Benzer Diziler Önerileri -->
+        {% if recommendations_with_status %}
+        <div class="mt-20 z-10 relative">
+            <h3 class="text-xl font-serif font-bold text-white mb-6 border-b border-white/10 pb-2"><span class="italic text-rose-400">{{ series.title }}</span> dizisini beğendiyseniz bunları da sevebilirsiniz...</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+                {% for rec in recommendations_with_status %}
+                    {% if rec.found_id %}
+                        <a href="{{ url_for('series_detail', series_id=rec.found_id) }}" class="bg-black/30 border border-white/10 rounded-xl overflow-hidden shadow-xl flex flex-col group hover:border-rose-500/50 transition">
+                            <img src="{{ rec.poster }}" class="w-full h-72 object-cover group-hover:scale-105 transition duration-300" alt="{{ rec.title }}">
+                            <div class="p-3 flex justify-between items-center bg-black/60 gap-2">
+                                <p class="text-slate-100 text-xs font-semibold leading-snug group-hover:text-amber-300 transition">{{ rec.title }}</p>
+                                <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex-shrink-0">{{ rec.score }}</span>
+                            </div>
+                        </a>
+                    {% else %}
+                        <div class="bg-black/30 border border-white/10 rounded-xl overflow-hidden shadow-xl flex flex-col opacity-70 cursor-not-allowed">
+                            <img src="{{ rec.poster }}" class="w-full h-72 object-cover" alt="{{ rec.title }}">
+                            <div class="p-3 flex justify-between items-center bg-black/60 gap-2">
+                                <p class="text-slate-400 text-xs font-semibold leading-snug">{{ rec.title }} (Arşivde Yok)</p>
+                                <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex-shrink-0">{{ rec.score }}</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Görsel Büyütme (Lightbox) Modalı -->
+<div id="imageModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden z-50 flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-5xl max-h-[90vh] flex items-center justify-center" onclick="event.stopPropagation()">
+        <!-- Sol Ok Butonu -->
+        <button type="button" onclick="prevImage(event)" class="absolute -left-12 bg-white/10 hover:bg-white/30 text-white w-10 h-10 rounded-full font-bold text-lg flex items-center justify-center transition shadow-lg cursor-pointer">‹</button>
+        
+        <img id="modalImage" src="" class="max-w-full max-h-[85vh] object-contain rounded-2xl border border-white/20 shadow-2xl">
+        
+        <!-- Sağ Ok Butonu -->
+        <button type="button" onclick="nextImage(event)" class="absolute -right-12 bg-white/10 hover:bg-white/30 text-white w-10 h-10 rounded-full font-bold text-lg flex items-center justify-center transition shadow-lg cursor-pointer">›</button>
+        
+        <!-- Kapatma Butonu -->
+        <button type="button" onclick="closeImageModal()" class="absolute -top-4 -right-4 bg-rose-600 hover:bg-rose-700 text-white w-9 h-9 rounded-full font-bold text-sm flex items-center justify-center shadow-lg cursor-pointer">✕</button>
+    </div>
+</div>
+
+<!-- İnteraktif Yorum, Yıldız ve Kalp Güncelleme Modalı -->
+<div id="interactiveReviewModal" class="fixed inset-x-0 bottom-0 top-[69px] bg-black/60 backdrop-blur-md hidden z-40 flex items-center justify-center p-4">
+    <div style="border: 2px solid rgba(6, 182, 212, 0.4);" class="bg-[#050608]/95 rounded-3xl p-6 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+        <h3 id="modalReviewTitle" class="text-lg font-serif font-bold text-cyan-300 mb-2 border-b border-cyan-500/30 pb-2">Değerlendirme Düzenle</h3>
+        <div id="modalReviewDate" class="text-xs text-emerald-400 font-semibold mb-3"></div>
+        
+        <form id="reviewForm" method="POST" class="space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-rose-400 uppercase tracking-wider">Favori Kalp</span>
+                <label class="cursor-pointer flex items-center">
+                    <input type="checkbox" name="user_favorite" id="modalFavCheckbox" class="hidden peer">
+                    <svg class="favorite-heart w-8 h-8 text-slate-500 peer-checked:text-red-500 fill-transparent peer-checked:fill-red-500" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                    </svg>
+                </label>
+            </div>
+
+            <div>
+                <label class="block text-[10px] text-slate-400 uppercase mb-1">Puan</label>
+                <div class="star-rating" data-input-id="modal_user_rating"></div>
+                <input type="hidden" name="user_rating" id="modal_user_rating" value="0">
+            </div>
+
+            <div>
+                <label class="block text-[10px] text-slate-400 uppercase mb-1">Yorumun</label>
+                <textarea name="user_comment" id="modalCommentTextarea" placeholder="Dizi hakkındaki düşüncelerin..." class="w-full bg-black/50 border border-white/15 rounded-lg p-3 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 min-h-[100px]"></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="flex-grow bg-cyan-500 hover:bg-cyan-600 text-slate-950 py-2.5 rounded-xl text-xs font-bold transition shadow-md">Değerlendirmeyi Kaydet</button>
+                <button type="button" onclick="closeInteractiveReviewModal()" class="bg-rose-950 hover:bg-rose-900 text-white px-5 py-2.5 rounded-xl text-xs font-semibold transition">İptal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .star-rating { display: inline-flex; gap: 6px; cursor: pointer; }
+    .star { font-size: 28px; color: #334155; position: relative; transition: all 0.2s ease; }
+    .star.filled { color: #fbbf24; filter: drop-shadow(0 0 6px rgba(251,191,36,0.8)); }
+    .star.half { color: #fbbf24; background: linear-gradient(90deg, #fbbf24 50%, #334155 50%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 6px rgba(251,191,36,0.8)); }
+    .favorite-heart { transition: all 0.3s ease; }
+    .favorite-heart:hover { transform: scale(1.2); }
+</style>
+
+<script>
+let galleryImages = [];
+let currentIndex = 0;
+
+function toggleCalendarDropdown(boxId, arrowId) {
+    const box = document.getElementById(boxId);
+    const arrow = document.getElementById(arrowId);
+    if (!box) return;
+
+    if (box.classList.contains('hidden')) {
+        box.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        box.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
+function openImageModal(src) {
+    // Galeri konteynerindeki tüm görselleri yakalıyoruz
+    const imgElements = document.querySelectorAll('.flex.gap-4.overflow-x-auto img');
+    galleryImages = Array.from(imgElements).map(img => img.src);
+    
+    currentIndex = galleryImages.indexOf(src);
+    if (currentIndex === -1) currentIndex = 0;
+
+    document.getElementById('modalImage').src = galleryImages[currentIndex];
+    document.getElementById('imageModal').classList.remove('hidden');
+
+    // Klavye yön tuşlarını dinlemeye başla
+    window.addEventListener('keydown', handleKeyboardNav);
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.add('hidden');
+    // Dinleyiciyi kaldır ki arka planda çalışmasın
+    window.removeEventListener('keydown', handleKeyboardNav);
+}
+
+function nextImage(event) {
+    if (event) event.stopPropagation();
+    if (galleryImages.length > 0) {
+        currentIndex = (currentIndex + 1) % galleryImages.length;
+        document.getElementById('modalImage').src = galleryImages[currentIndex];
+    }
+}
+
+function prevImage(event) {
+    if (event) event.stopPropagation();
+    if (galleryImages.length > 0) {
+        currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
+        document.getElementById('modalImage').src = galleryImages[currentIndex];
+    }
+}
+
+function handleKeyboardNav(event) {
+    if (event.key === 'ArrowRight') {
+        nextImage();
+    } else if (event.key === 'ArrowLeft') {
+        prevImage();
+    } else if (event.key === 'Escape') {
+        closeImageModal();
+    }
+}
+function openInteractiveReviewModal(title, calendarId, rating, comment, isFav, scheduledDate) {
+        if (!calendarId || calendarId === '0') {
+            alert("Bu dizi henüz takvimde planlanmamış. Lütfen önce takvime ekleyin.");
+            return;
+        }
+        document.getElementById('reviewForm').action = "/update_series_journal_review/" + calendarId;
+        
+        // İzleme tarihini burada gösteriyoruz
+        document.getElementById('modalReviewDate').innerText = scheduledDate ? "İzleme Tarihi: " + scheduledDate : "İzleme Tarihi: Henüz planlanmadı";
+        
+        document.getElementById('modalFavCheckbox').checked = isFav;
+        document.getElementById('modalCommentTextarea').value = comment === 'Yorum yazılmadı.' ? '' : comment;
+        document.getElementById('modal_user_rating').value = rating;
+
+        let container = document.querySelector('.star-rating');
+        container.innerHTML = generateStarsHtml(parseFloat(rating));
+        initModalStarRatings();
+
+        document.getElementById('interactiveReviewModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeInteractiveReviewModal() {
+        document.getElementById('interactiveReviewModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden'); // <--- Kilidi kaldırır
+    }
+
+    function generateStarsHtml(rating) {
+        let html = '';
+        for (let s = 1; s <= 5; s++) {
+            let fillClass = '';
+            if (rating >= s) fillClass = 'filled';
+            else if (rating >= s - 0.5) fillClass = 'half';
+            html += `<span class="star ${fillClass}" data-value="${s}">★</span>`;
+        }
+        return html;
+    }
+
+    function initModalStarRatings() {
+        const container = document.querySelector('.star-rating');
+        const stars = container.querySelectorAll('.star');
+        const hiddenInput = document.getElementById('modal_user_rating');
+
+        stars.forEach((star, index) => {
+            star.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const isHalf = e.clientX - rect.left < rect.width / 2;
+                const starValue = index + (isHalf ? 0.5 : 1.0);
+                updateModalStarsVisual(stars, starValue);
+            });
+
+            star.addEventListener('click', function(e) {
+                const rect = this.getBoundingClientRect();
+                const isHalf = e.clientX - rect.left < rect.width / 2;
+                const starValue = index + (isHalf ? 0.5 : 1.0);
+                hiddenInput.value = starValue;
+                updateModalStarsVisual(stars, starValue);
+            });
+        });
+
+        container.addEventListener('mouseleave', function() {
+            updateModalStarsVisual(stars, parseFloat(hiddenInput.value || 0));
+        });
+    }
+
+    function updateModalStarsVisual(stars, rating) {
+        stars.forEach((star, index) => {
+            star.className = 'star';
+            if (rating >= index + 1) {
+                star.classList.add('filled');
+            } else if (rating >= index + 0.5) {
+                star.classList.add('half');
+            }
+        });
+    }
+  </script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-6 py-8 font-sans">
+    <h2 class="text-2xl font-serif font-bold text-amber-300 mb-4 flex items-center justify-center gap-3">
+        <span>Yorumlarım</span>
+    </h2>
+
+    <!-- Film / Dizi Sekme (Switch) Butonları -->
+    <div class="flex justify-center items-center gap-3 mb-8">
+        <button onclick="switchTab('movies')" id="movieTabBtn" class="px-5 py-2 rounded-xl text-xs font-bold transition bg-amber-500 text-slate-950 shadow">
+            Film Yorumları ({{ comments_items|length }})
+        </button>
+        <button onclick="switchTab('series')" id="seriesTabBtn" class="px-5 py-2 rounded-xl text-xs font-bold transition bg-white/10 text-slate-300 hover:text-white">
+            Dizi Yorumları ({{ series_comments_items|length }})
+        </button>
+    </div>
+
+    <!-- FİLM YORUMLARI LİSTESİ -->
+    <div id="movieCommentsSection" class="space-y-6">
+        {% if comments_items %}
+            <div class="space-y-6">
+                {% for item in comments_items %}
+                <div class="bg-[#0d0e15] border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-start gap-6 shadow-2xl hover:border-amber-500/40 transition">
+                    
+                    <!-- Film Posteri -->
+                    <a href="{{ url_for('movie_detail', movie_id=item.movie.id) if item.movie else '#' }}" class="w-28 h-40 flex-shrink-0 bg-black/60 rounded-xl overflow-hidden border border-white/10 shadow-inner group mx-auto md:mx-0">
+                        {% if item.movie and item.movie.poster_url %}
+                            <img src="{{ item.movie.poster_url }}" alt="{{ item.movie.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-[10px] text-slate-500 text-center p-1">Poster Yok</div>
+                        {% endif %}
+                    </a>
+
+                    <!-- Sağ Taraf -->
+                    <div class="flex-grow w-full space-y-4 overflow-hidden">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                            <a href="{{ url_for('movie_detail', movie_id=item.movie.id) if item.movie else '#' }}" class="font-serif font-bold text-amber-400 hover:underline text-lg tracking-wide truncate max-w-xl">
+                                {{ item.movie.title if item.movie else 'Film' }}
+                            </a>
+
+                            <div class="flex items-center gap-2.5 flex-shrink-0">
+                                {% if item.user_rating and item.user_rating > 0 %}
+                                <div class="flex items-center gap-1.5 bg-black/50 border border-amber-500/30 px-3 py-1.5 rounded-xl text-amber-400 shadow-inner">
+                                    <span class="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">★</span>
+                                    <span class="text-xs font-bold text-slate-200">{{ item.user_rating }}</span>
+                                </div>
+                                {% endif %}
+
+                                {% if item.user_favorite %}
+                                <div class="flex items-center justify-center bg-black/50 border border-rose-500/30 w-9 h-9 rounded-xl shadow-inner">
+                                    <span class="text-rose-500 text-sm drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]">❤️</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="bg-black/50 p-4 rounded-xl border border-white/5 w-full">
+                            <p class="text-xs text-slate-300 leading-relaxed break-all whitespace-normal">
+                                "{{ item.user_comment.strip() if item.user_comment else '' }}"
+                            </p>
+                        </div>
+
+                        <!-- Alt Bilgi: İzleme Tarihi ve Yorumun Yazıldığı Gün -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center text-[10px] text-slate-400 pt-1 gap-1">
+                            <div>
+                                {% if item.scheduled_date %}
+                                <span class="text-emerald-400 font-semibold">İzleme Tarihi: {{ item.scheduled_date }}</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if item.user_updated_at %}
+                                <span class="text-slate-400">Yorum Tarihi: {{ item.user_updated_at }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-16 bg-[#0d0e15] border border-white/10 rounded-3xl">
+                <p class="text-slate-400 text-xs font-semibold mb-4">Henüz hiç film yorumu yapmamışsın.</p>
+                <a href="{{ url_for('pool') }}" class="inline-block bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow">Filmlere Göz At &rarr;</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- DİZİ YORUMLARI LİSTESİ -->
+    <div id="seriesCommentsSection" class="space-y-6 hidden">
+        {% if series_comments_items %}
+            <div class="space-y-6">
+                {% for item in series_comments_items %}
+                <div class="bg-[#0d0e15] border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-start gap-6 shadow-2xl hover:border-cyan-500/40 transition">
+                    
+                    <!-- Dizi Posteri -->
+                    <a href="{{ url_for('series_detail', series_id=item.series.id) if item.series else '#' }}" class="w-28 h-40 flex-shrink-0 bg-black/60 rounded-xl overflow-hidden border border-white/10 shadow-inner group mx-auto md:mx-0">
+                        {% if item.series and item.series.poster_url %}
+                            <img src="{{ item.series.poster_url }}" alt="{{ item.series.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-[10px] text-slate-500 text-center p-1">Poster Yok</div>
+                        {% endif %}
+                    </a>
+
+                    <!-- Sağ Taraf -->
+                    <div class="flex-grow w-full space-y-4 overflow-hidden">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                            <a href="{{ url_for('series_detail', series_id=item.series.id) if item.series else '#' }}" class="font-serif font-bold text-cyan-400 hover:underline text-lg tracking-wide truncate max-w-xl">
+                                {{ item.series.title if item.series else 'Dizi' }}
+                            </a>
+
+                            <div class="flex items-center gap-2.5 flex-shrink-0">
+                                {% if item.user_rating and item.user_rating > 0 %}
+                                <div class="flex items-center gap-1.5 bg-black/50 border border-cyan-500/30 px-3 py-1.5 rounded-xl text-cyan-400 shadow-inner">
+                                    <span class="text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">★</span>
+                                    <span class="text-xs font-bold text-slate-200">{{ item.user_rating }}</span>
+                                </div>
+                                {% endif %}
+
+                                {% if item.user_favorite %}
+                                <div class="flex items-center justify-center bg-black/50 border border-rose-500/30 w-9 h-9 rounded-xl shadow-inner">
+                                    <span class="text-rose-500 text-sm drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]">❤️</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="bg-black/50 p-4 rounded-xl border border-white/5 w-full">
+                            <p class="text-xs text-slate-300 leading-relaxed break-all whitespace-normal">
+                                "{{ item.user_comment.strip() if item.user_comment else '' }}"
+                            </p>
+                        </div>
+
+                        <!-- Alt Bilgi: İzleme Tarihi ve Yorumun Yazıldığı Gün -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center text-[10px] text-slate-400 pt-1 gap-1">
+                            <div>
+                                {% if item.scheduled_date %}
+                                <span class="text-emerald-400 font-semibold">İzleme Tarihi: {{ item.scheduled_date }}</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if item.user_updated_at %}
+                                <span class="text-slate-400">Yorum Tarihi: {{ item.user_updated_at }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-16 bg-[#0d0e15] border border-white/10 rounded-3xl">
+                <p class="text-slate-400 text-xs font-semibold mb-4">Henüz hiç dizi yorumu yapmamışsın.</p>
+                <a href="{{ url_for('series_pool') }}" class="inline-block bg-cyan-500 hover:bg-cyan-600 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow">Dizilere Göz At &rarr;</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function switchTab(tab) {
+        const movieBtn = document.getElementById('movieTabBtn');
+        const seriesBtn = document.getElementById('seriesTabBtn');
+        const movieSection = document.getElementById('movieCommentsSection');
+        const seriesSection = document.getElementById('seriesCommentsSection');
+
+        if (tab === 'movies') {
+            movieBtn.className = "px-5 py-2 rounded-xl text-xs font-bold transition bg-amber-500 text-slate-950 shadow";
+            seriesBtn.className = "px-5 py-2 rounded-xl text-xs font-bold transition bg-white/10 text-slate-300 hover:text-white";
+            movieSection.classList.remove('hidden');
+            seriesSection.classList.add('hidden');
+        } else {
+            seriesBtn.className = "px-5 py-2 rounded-xl text-xs font-bold transition bg-cyan-500 text-slate-950 shadow";
+            movieBtn.className = "px-5 py-2 rounded-xl text-xs font-bold transition bg-white/10 text-slate-300 hover:text-white";
+            seriesSection.classList.remove('hidden');
+            movieSection.classList.add('hidden');
+        }
+    }
+</script>
+{% endblock %}

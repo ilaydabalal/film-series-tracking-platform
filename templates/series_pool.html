@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-10 font-sans text-slate-100">
+    
+    <!-- Üst Başlık, Arama Çubuğu, Tür Filtresi ve Rastgele Dizi Çek Butonu -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-white/10 pb-5 gap-4">
+        <div>
+            <h1 class="text-3xl font-serif font-bold text-white mb-1">Dizi Havuzu</h1>
+            <p class="text-slate-400 text-xs">Listeden bu aya dizi ekleyebilir veya detayına bakabilirsiniz.</p>
+        </div>
+
+        <!-- Sağ Taraf: Arama Formu, Tür & Dil Filtreleri ve Şanslı Dizi Butonu -->
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <!-- Rastgele Dizi Çek Butonu -->
+            <button onclick="openLotteryModal()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-lg flex items-center gap-2 flex-shrink-0 group">
+                Şans Çarkı
+            </button>
+
+            <!-- Ortak Filtreleme ve Arama Formu -->
+            <form method="GET" action="{{ url_for('series_pool') }}" class="flex flex-wrap items-center gap-2">
+                
+                <!-- Tür Seçim Kutusu -->
+                <select name="genre" onchange="this.form.submit()" class="bg-[#121418] border border-white/15 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 transition cursor-pointer">
+                    <option value="">Tüm Türler</option>
+                    {% for g in genres %}
+                        <option value="{{ g }}" {% if selected_genre == g %}selected{% endif %}>{{ g }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Dil Seçim Kutusu -->
+                <select name="language" onchange="this.form.submit()" class="bg-[#121418] border border-white/15 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-400 transition cursor-pointer">
+                    <option value="">Tüm Diller</option>
+                    {% for lang in languages %}
+                        <option value="{{ lang }}" {% if selected_language == lang %}selected{% endif %}>{{ lang }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Arama Kutusu ve Butonlar -->
+                <div class="flex gap-2">
+                    <div class="relative">
+                        <input type="text" name="q" value="{{ search_query if search_query else '' }}" placeholder="Dizi adı, yapımcı..." class="bg-black/50 border border-white/15 rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-inner w-40 sm:w-48">
+                    </div>
+                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow flex-shrink-0">Ara</button>
+                    
+                    {% if search_query or selected_genre or selected_language %}
+                    <a href="{{ url_for('series_pool') }}" class="bg-white/10 hover:bg-white/20 text-slate-300 px-3 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center" title="Filtreleri Sıfırla">✕</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dizi Listesi Izgarası -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        {% for series in movies %}
+        {% set is_scheduled = series.id in scheduled_series_ids %}
+        {% set is_watched = series.id in watched_series_ids %}
+        {% set is_in_month_pool = series.id in series_pool_ids %}
+        {% set global_index = (pagination.page - 1) * pagination.per_page + loop.index %}
+        
+        <div class="bg-black/40 border border-white/10 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between group hover:border-amber-400/50 transition relative {{ 'opacity-50 grayscale-[25%]' if is_watched or is_scheduled else '' }}">
+            
+            <span class="absolute top-2 left-2 bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md text-[10px] font-extrabold shadow z-10">
+                #{{ global_index }}
+            </span>
+
+            <a href="{{ url_for('series_detail', series_id=series.id) }}">
+                <img src="{{ series.poster_url }}" class="w-full h-72 object-cover group-hover:scale-105 transition duration-300" alt="{{ series.title }}">
+            </a>
+
+            <div class="p-4 flex flex-col justify-between flex-grow">
+                <div>
+                    <a href="{{ url_for('series_detail', series_id=series.id) }}">
+                        <h3 class="font-serif font-bold text-white text-sm h-12 flex items-center leading-snug mb-1 hover:text-amber-300 transition">{{ series.title }}</h3>
+                    </a>
+                    {% if series.creator %}
+                    <p class="text-[11px] text-slate-400 truncate mb-1">Yapımcı: <span class="text-slate-200">{{ series.creator }}</span></p>
+                    {% endif %}
+                    {% if series.genres %}
+                    <p class="text-[10px] text-amber-400/90 truncate font-medium mb-3">{{ series.genres }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2 mt-2">
+                    {% if is_scheduled or is_watched %}
+                        <span class="w-full text-center bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 py-1.5 rounded-xl text-[10px] font-bold">Takvimde Planlı</span>
+                    {% elif is_in_month_pool %}
+                        <span class="w-full text-center bg-amber-500/20 border border-amber-500/30 text-amber-300 py-1.5 rounded-xl text-[10px] font-bold">Ay Havuzunda</span>
+                    {% else %}
+                        <a href="{{ url_for('add_to_series_month_pool', series_id=series.id) }}" class="w-full text-center bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-xl text-[10px] font-bold transition shadow">Bu Aya Ekle</a>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+        {% else %}
+        <div class="col-span-full text-center py-20">
+            <p class="text-slate-400 text-sm mb-3">Aradığınız kriterlere uygun dizi bulunamadı.</p>
+            <a href="{{ url_for('series_pool') }}" class="inline-block bg-amber-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition">Tüm Dizilere Geri Dön</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Sayfalama -->
+    {% if pagination.pages > 1 %}
+    <div class="flex justify-center items-center gap-3 mt-12 mb-10">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('series_pool', page=pagination.prev_num, q=search_query, genre=selected_genre, language=selected_language) }}" class="bg-white/10 hover:bg-white/20 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition">Önceki</a>
+        {% endif %}
+
+        <select onchange="location.href=this.value;" class="bg-black/60 border border-white/20 text-slate-200 px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none focus:border-amber-400">
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <option value="{{ url_for('series_pool', page=page_num, q=search_query, genre=selected_genre, language=selected_language) }}" {% if page_num == pagination.page %}selected{% endif %}>
+                        Sayfa {{ page_num }} / {{ pagination.pages }}
+                    </option>
+                {% else %}
+                    <option disabled>...</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+
+        {% if pagination.has_next %}
+        <a href="{{ url_for('series_pool', page=pagination.next_num, q=search_query, genre=selected_genre, language=selected_language) }}" class="bg-white/10 hover:bg-white/20 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition">Sonraki</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- ŞANSLI DİZİ MAKARASI MODALI -->
+<div id="lotteryModal" class="fixed inset-x-0 bottom-0 top-16 bg-black/80 backdrop-blur-sm hidden z-40 flex items-center justify-center p-4">
+    <div class="relative bg-[#0d0e15] border-2 border-amber-500/70 rounded-3xl p-7 md:p-9 max-w-lg w-full shadow-[0_0_80px_rgba(245,158,11,0.5)] text-center flex flex-col items-center justify-center">
+        
+        <div class="absolute -bottom-32 -right-32 w-64 h-64 bg-rose-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <h3 class="text-2xl font-serif font-bold text-amber-300 mb-1">Şans Çarkı</h3>
+        <p class="text-xs text-slate-300 mb-6">Dizi havuzundan şanslı yapım seçiliyor...</p>
+
+        <div id="lotteryContainer" class="w-full flex flex-col items-center justify-center my-2 relative">
+            <div class="absolute -top-4 z-30 w-0 h-0 border-x-8 border-x-transparent border-t-[16px] border-t-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"></div>
+
+            <div id="lotterySpinningBox" class="w-40 h-40 rounded-full bg-gradient-to-tr from-zinc-800 via-zinc-700 to-zinc-900 flex items-center justify-center shadow-[0_0_40px_rgba(245,158,11,0.6)] mb-5 border-[6px] border-amber-500 relative overflow-hidden z-20">
+                <div class="absolute inset-1.5 border-[3px] border-dashed border-amber-300/60 rounded-full"></div>
+                <div class="absolute inset-4 border border-white/25 rounded-full"></div>
+                <div class="absolute w-full h-1 bg-amber-400/40 rotate-0"></div>
+                <div class="absolute w-full h-1 bg-amber-400/40 rotate-45"></div>
+                <div class="absolute w-full h-1 bg-amber-400/40 rotate-90"></div>
+                <div class="absolute w-full h-1 bg-amber-400/40 rotate-[135deg]"></div>
+                <div class="w-12 h-12 bg-black rounded-full shadow-inner z-30 border-2 border-amber-400 flex items-center justify-center"></div>
+            </div>
+
+            <div id="lotterySlotText" class="text-sm font-bold text-amber-200 font-serif tracking-wide h-6 flex items-center justify-center z-20">
+                Makarayı çevir şansını dene
+            </div>
+        </div>
+
+        <div id="lotteryResultCard" class="hidden w-full flex flex-col items-center animate-fade-in z-20">
+            <div class="relative group mb-4">
+                <img id="resultPoster" src="" class="w-36 h-52 object-cover rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-2 border-amber-400">
+                <span class="absolute top-2 right-2 bg-amber-500 text-slate-950 px-2.5 py-1 rounded-lg text-[10px] font-extrabold shadow">Şanslı Seçim!</span>
+            </div>
+            <h4 id="resultTitle" class="font-serif font-bold text-white text-base mb-1 line-clamp-1"></h4>
+            <p id="resultCreator" class="text-xs text-slate-400 mb-1"></p>
+            <p id="resultGenres" class="text-xs text-amber-400 mb-5 font-semibold"></p>
+            
+            <div class="flex gap-3 w-full mb-2">
+                <a id="resultDetailBtn" href="#" class="flex-grow bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl text-xs font-bold transition">Detaya Git</a>
+                <a id="resultAddBtn" href="#" class="flex-grow bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow">Bu Aya Ekle</a>
+            </div>
+        </div>
+
+        <div id="lotteryActions" class="flex gap-3 w-full mt-4 z-20">
+            <button onclick="closeLotteryModal()" class="w-1/2 bg-white/10 hover:bg-white/20 text-slate-300 py-3 rounded-xl text-xs font-semibold transition">Vazgeç</button>
+            <button id="spinButton" onclick="startLottery()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 py-3 rounded-xl text-xs font-bold transition shadow">Çevir</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let mockSeriesForSlot = [
+        "Dizi aranıyor...", "Makara döndürülüyor...", "Rastgele seçiliyor...", 
+        "Dizi arşivi taranıyor...", "Harika bir dizi geliyor..."
+    ];
+
+    function openLotteryModal() {
+        document.getElementById('lotteryModal').classList.remove('hidden');
+    }
+
+    function closeLotteryModal() {
+        document.getElementById('lotteryModal').classList.add('hidden');
+        resetLotteryUI();
+    }
+
+    function resetLotteryUI() {
+        document.getElementById('lotterySpinningBox').classList.remove('hidden');
+        document.getElementById('lotterySlotText').classList.remove('hidden');
+        document.getElementById('lotteryResultCard').classList.add('hidden');
+        
+        const spinBtn = document.getElementById('spinButton');
+        spinBtn.innerText = "Makarayı Çevir!";
+        spinBtn.setAttribute("onclick", "startLottery()");
+        spinBtn.disabled = false;
+        
+        document.getElementById('lotterySlotText').innerText = "Makara çevriliyor ve şansın deneniyor";
+    }
+
+    async function startLottery() {
+        const spinBtn = document.getElementById('spinButton');
+        const spinningBox = document.getElementById('lotterySpinningBox');
+        const slotText = document.getElementById('lotterySlotText');
+        const resultCard = document.getElementById('lotteryResultCard');
+
+        spinBtn.disabled = true;
+        spinBtn.innerText = "Çevriliyor...";
+
+        try {
+            const response = await fetch('/api/random-series');
+            const series = await response.json();
+
+            if (series.error) {
+                alert(series.error);
+                closeLotteryModal();
+                return;
+            }
+
+            spinningBox.classList.add('animate-spin');
+
+            let counter = 0;
+            const interval = setInterval(() => {
+                slotText.innerText = mockSeriesForSlot[counter % mockSeriesForSlot.length];
+                counter++;
+            }, 150);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                spinningBox.classList.remove('animate-spin');
+
+                spinningBox.classList.add('hidden');
+                slotText.classList.add('hidden');
+
+                document.getElementById('resultPoster').src = series.poster_url;
+                document.getElementById('resultTitle').innerText = series.title;
+                document.getElementById('resultCreator').innerText = "Yapımcı: " + (series.creator || "Bilinmiyor");
+                document.getElementById('resultGenres').innerText = series.genres;
+                
+                document.getElementById('resultDetailBtn').href = `/series/${series.id}`;
+                document.getElementById('resultAddBtn').href = `/add-to-series-month-pool/${series.id}`;
+                resultCard.classList.remove('hidden');
+                
+                spinBtn.innerText = "Tekrar Çevir";
+                spinBtn.setAttribute("onclick", "triggerAgain()");
+                spinBtn.disabled = false;
+
+            }, 2000);
+
+        } catch (err) {
+            console.error(err);
+            alert("Dizi çekilirken bir hata oluştu.");
+            spinBtn.disabled = false;
+            spinBtn.innerText = "Makarayı Çevir!";
+        }
+    }
+
+    function triggerAgain() {
+        document.getElementById('lotteryResultCard').classList.add('hidden');
+        document.getElementById('lotterySpinningBox').classList.remove('hidden');
+        document.getElementById('lotterySlotText').classList.remove('hidden');
+        startLottery();
+    }
+</script>
+{% endblock %}

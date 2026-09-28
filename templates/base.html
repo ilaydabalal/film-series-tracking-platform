@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Berilay • Social movie and TV series discovery</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(251, 191, 36, 0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(251, 191, 36, 0.6); }
+    </style>
+</head>
+<body class="bg-[#0e1113] text-slate-100 min-h-screen font-sans m-0 p-0">
+    
+<nav class="bg-black/50 border-b border-white/10 sticky top-0 z-50 backdrop-blur-md py-4 m-0 block">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">      
+        <!-- Sol Kısım: Hamburger Butonu, Logo ve Masaüstü Linkler -->
+        <div class="flex items-center gap-4 sm:gap-6">
+            <!-- Mobil Hamburger Menü Butonu (Sadece Mobilde Görünür) -->
+            <button onclick="toggleMobileMenu()" class="md:hidden text-slate-300 hover:text-white focus:outline-none p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+
+            <!-- Logo Tasarımı -->
+            <a href="{{ url_for('pool') }}" class="flex items-center gap-2.5">
+                <div class="flex gap-1">
+                    <span class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-amber-400"></span>
+                    <span class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-amber-400"></span>
+                    <span class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-amber-400"></span>
+                </div>
+                <span class="font-serif font-bold text-2xl sm:text-3xl text-white tracking-wider whitespace-nowrap">Berilay</span>
+            </a>
+
+            <!-- Navigasyon Sekmeleri (Masaüstü Görünüm) -->
+            <div class="hidden md:flex items-center gap-5 lg:gap-6 text-sm font-semibold uppercase tracking-wider text-slate-300">
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('pool') }}" class="hover:text-amber-400 transition whitespace-nowrap">Filmler</a>
+                    <a href="{{ url_for('series_pool') }}" class="hover:text-amber-400 transition whitespace-nowrap">Diziler</a>
+                    <a href="{{ url_for('actors_list') }}" class="hover:text-amber-400 transition whitespace-nowrap">Oyuncular</a>
+                    <a href="{{ url_for('members') }}" class="hover:text-amber-400 transition whitespace-nowrap">Üyeler</a>
+                    <a href="{{ url_for('friends') }}" class="hover:text-amber-400 transition whitespace-nowrap">Arkadaşlar</a>
+                    <a href="{{ url_for('journal') }}" class="hover:text-amber-400 transition whitespace-nowrap">Günlük</a>
+                    <a href="{{ url_for('my_comments') }}" class="hover:text-amber-400 transition whitespace-nowrap">Yorumlarım</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sağ Kısım: Profil ve Çıkış / Giriş -->
+        <div class="flex items-center gap-3">
+            {% if current_user.is_authenticated %}
+                <div class="relative">
+                    <a href="{{ url_for('profile') }}" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition shadow flex items-center gap-2 whitespace-nowrap">
+                        Profilim
+                    </a>
+                    {% if pending_requests_count and pending_requests_count > 0 %}
+                    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-black animate-ping"></span>
+                    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-black"></span>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('logout') }}" class="bg-white/10 hover:bg-white/20 text-slate-200 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap">Çıkış</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="bg-white/10 hover:bg-white/20 text-slate-200 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap">Giriş</a>
+                <a href="{{ url_for('register') }}" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition shadow whitespace-nowrap">Kayıt Ol</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Mobil Açılır Menü Alanı (Hamburger Menüye Tıklanınca Açılır) -->
+    <div id="mobileMenu" class="hidden md:hidden bg-[#0d0e15] border-t border-white/10 mt-4 px-6 pt-3 pb-4 space-y-2 shadow-2xl">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('pool') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-200 hover:bg-white/10 hover:text-amber-400 transition">Filmler</a>
+            <a href="{{ url_for('series_pool') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-200 hover:bg-white/10 hover:text-amber-400 transition">Diziler</a>
+            <a href="{{ url_for('actors_list') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-200 hover:bg-white/10 hover:text-amber-400 transition">Oyuncular</a>
+            <a href="{{ url_for('members') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-200 hover:bg-white/10 hover:text-amber-400 transition">Üyeler</a>
+            <a href="{{ url_for('friends') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-200 hover:bg-white/10 hover:text-amber-400 transition">Arkadaşlar</a>
+            <a href="{{ url_for('journal') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-200 hover:bg-white/10 hover:text-amber-400 transition">Günlük</a>
+            <a href="{{ url_for('my_comments') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider text-slate-200 hover:bg-white/10 hover:text-amber-400 transition">Yorumlarım</a>
+        {% endif %}
+    </div>
+</nav>
+
+<!-- Mobil Menü Kontrol Scripti -->
+<script>
+    function toggleMobileMenu() {
+        const menu = document.getElementById('mobileMenu');
+        menu.classList.toggle('hidden');
+    }
+</script>
+
+    <div class="max-w-7xl mx-auto px-6 mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="p-3 rounded-xl mb-3 text-xs font-semibold {{ 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' if category == 'success' else 'bg-rose-500/20 text-rose-300 border border-rose-500/30' }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    {% block content %}{% endblock %}
+
+<!-- Özel Toastr Bildirim Konteyneri -->
+<div id="customToastContainer" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+<script>
+    function showToast(message, type = 'error') {
+        const container = document.getElementById('customToastContainer');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        let bgClass = type === 'success' ? 'bg-emerald-600 border-emerald-400' : 'bg-rose-600 border-rose-400';
+        
+        toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl text-xs font-semibold text-white border backdrop-blur-md transition-all duration-300 opacity-0 translate-y-[-10px] ${bgClass}`;
+        toast.innerHTML = `
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()" class="ml-2 text-white/80 hover:text-white font-bold">✕</button>
+        `;
+
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.remove('opacity-0', 'translate-y-[-10px]');
+        }, 10);
+
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-[-10px]');
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-10 font-sans text-slate-100">
+    <h2 class="text-2xl font-serif font-bold text-white mb-8 border-b border-white/10 pb-3">Arkadaşlarım</h2>
+
+    {% if friends %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for f in friends %}
+        <div class="bg-black/40 border border-white/10 rounded-2xl p-5 shadow-xl flex items-center justify-between gap-4 hover:border-amber-400/50 transition">
+            
+            <!-- Sol Kısım: Tıklanınca Arkadaşın Film/Dizi Şeridi Modalı Açılır -->
+            <div onclick="openMemberFilmStrip('{{ f.username }}')" class="flex items-center gap-4 cursor-pointer flex-grow group">
+                <div class="w-12 h-12 rounded-full overflow-hidden border border-amber-500/50 flex items-center justify-center bg-[#7f1d1d] shadow flex-shrink-0">
+                    {% if f.avatar %}
+                        <img src="{{ url_for('static', filename='images/' ~ f.avatar) }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <span class="text-white font-bold text-lg">{{ f.username[0] | upper }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="overflow-hidden">
+                    <h4 class="font-bold text-white text-base group-hover:text-amber-300 transition truncate">{{ f.username }}</h4>
+                    <p class="text-xs text-slate-400 mt-0.5"></p>
+                </div>
+            </div>
+
+            <!-- Sağ Taraf: Yorumlar Butonu ve Arkadaşlıktan Çıkar -->
+            <div class="flex items-center gap-2">
+                <button onclick="openFriendCommentsModal('{{ f.username }}')" class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 px-4 py-2 rounded-xl text-xs font-semibold transition shadow whitespace-nowrap">
+                    Yorumlar
+                </button>
+
+                <form action="{{ url_for('remove_friend', friend_id=f.id) }}" method="POST">
+                    <button type="submit" class="bg-[#7f1d1d] hover:bg-red-900 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow whitespace-nowrap">
+                        Arkadaşlıktan Çıkar
+                    </button>
+                </form>
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-slate-400 text-sm py-16 text-center">
+        Henüz eklenmiş bir arkadaşınız bulunmuyor. Üyeler sayfasından arkadaş ekleyebilirsiniz.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Üye Film / Dizi Şeridi Modalı -->
+<div id="memberFilmModal" class="fixed inset-x-0 bottom-0 top-[69px] bg-black/60 backdrop-blur-md hidden z-40 flex items-center justify-center p-4">
+    <div id="modalBoxWrapper" class="relative rounded-3xl p-6 max-w-6xl w-full shadow-2xl overflow-hidden border border-amber-500/40 bg-[#050608]/95 max-h-[90vh] flex flex-col transition-all duration-300">
+        
+        <div id="modalHeaderRow" class="relative z-10 flex flex-wrap justify-between items-center mb-4 border-b border-amber-500/30 pb-3 flex-shrink-0 gap-3">
+            <div class="flex items-center gap-4">
+                <h3 id="modalMemberTitle" class="text-xl font-serif font-bold text-amber-300">Film Şeridi</h3>
+
+                <!-- FİLM / DİZİ SWITCH (ANAHTAR) BUTONU -->
+                <div class="bg-black/80 border border-white/15 p-1 rounded-xl flex items-center gap-1 shadow-inner">
+                    <button id="switchMovieBtn" onclick="switchMediaType('movie')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 shadow">Filmler</button>
+                    <button id="switchSeriesBtn" onclick="switchMediaType('series')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white">Diziler</button>
+                </div>
+            </div>
+
+            <button onclick="closeMemberFilmModal()" class="bg-rose-950 hover:bg-rose-900 text-white px-5 py-2 rounded-full text-xs font-bold transition shadow-lg">Kapat</button>
+        </div>
+
+        <!-- ÜYENİN FAVORİ VİTRİNİ (AÇ-KAPA BUTONLU) -->
+        <div class="relative z-10 mb-4 flex-shrink-0">
+            <button id="topFourToggleBtn" onclick="toggleMemberTopFour()" class="w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 py-2.5 px-4 rounded-xl text-xs font-bold transition flex justify-between items-center shadow-md">
+                <span id="topFourToggleText" class="flex items-center gap-2">Favori Filmler</span>
+                <span id="memberTopFourArrow" class="text-amber-400 font-bold">▼</span>
+            </button>
+            
+            <div id="memberTopFourContainer" class="hidden mt-3 bg-black/90 p-4 rounded-2xl border border-amber-500/40 shadow-2xl">
+                <div id="memberTopFourGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <!-- JS ile dolacak -->
+                </div>
+            </div>
+        </div>
+
+        <!-- FİLTRELEME VE ARAMA ÇUBUĞU ALANI -->
+        <div class="relative z-10 flex flex-wrap gap-3 items-center mb-4 bg-black/60 p-3 rounded-2xl border border-white/10 flex-shrink-0">
+            <input type="text" id="memberSearchInput" oninput="renderMemberContent()" placeholder="Film/Dizi veya yönetmen ara..." class="flex-grow bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400">
+            
+            <select id="memberRatingFilter" onchange="renderMemberContent()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400">
+                <option value="">Tüm Puanlar</option>
+                <option value="5">5 Yıldız</option>
+                <option value="4">4 Yıldız</option>
+                <option value="3">3 Yıldız</option>
+                <option value="2">2 Yıldız</option>
+                <option value="1">1 Yıldız</option>
+            </select>
+
+            <select id="memberFavoriteFilter" onchange="renderMemberContent()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400">
+                <option value="" id="allOptText">Tüm Filmler</option>
+                <option value="favorite">Sadece Kalplenenler (Favoriler)</option>
+            </select>
+        </div>
+
+        <!-- İçerik Alanı (Film/Dizi Şeridi) -->
+        <div id="memberFilmContainer" class="relative z-10 overflow-x-auto overflow-y-hidden py-6 my-auto flex-grow flex items-center scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-amber-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-black/80 [&::-webkit-scrollbar-track]:rounded-full">
+            <!-- Dinamik içerik JS ile dolacak -->
+        </div>
+    </div>
+</div>
+
+<!-- Arkadaşın Yorumları Modalı -->
+<div id="friendCommentsModal" class="fixed inset-x-0 bottom-0 top-[72px] bg-black/60 backdrop-blur-md hidden z-40 flex items-center justify-center p-4">
+    <div class="relative rounded-3xl p-6 max-w-6xl w-full shadow-2xl overflow-hidden border border-amber-500/40 bg-[#050608]/95 max-h-[70vh] flex flex-col">
+        <div class="relative z-10 flex justify-between items-center mb-6 border-b border-amber-500/30 pb-3 flex-shrink-0">
+            <h3 id="friendCommentsModalTitle" class="text-xl font-serif font-bold text-amber-300">Yorumlar</h3>
+            <button onclick="closeFriendCommentsModal()" class="bg-rose-950 hover:bg-rose-900 text-white px-5 py-2 rounded-full text-xs font-bold transition shadow-lg">Kapat</button>
+        </div>
+
+        <div id="friendCommentsContainer" class="relative z-10 overflow-y-auto flex-grow space-y-6 pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-amber-500/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+            <!-- Yorumlar buraya yüklenecek -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const memberWatchedData = {{ member_movies_data | tojson | safe }};
+    const memberTopFourData = {{ member_top_four_data | tojson | safe }};
+    const memberSeriesWatchedData = {{ member_series_data | tojson | safe }};
+    const memberTopFourSeriesData = {{ member_top_four_series_data | tojson | safe }};
+
+    let currentUsername = "";
+    let currentMediaType = 'movie';
+
+    function openMemberFilmStrip(username) {
+        currentUsername = username;
+        currentMediaType = 'movie';
+        updateModalTheme();
+        renderMemberContent();
+        document.getElementById('memberFilmModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function switchMediaType(type) {
+        currentMediaType = type;
+        updateModalTheme();
+        renderMemberContent();
+    }
+
+function updateModalTheme() {
+        const modalBox = document.getElementById('modalBoxWrapper');
+        const modalHeader = document.getElementById('modalHeaderRow');
+        const titleEl = document.getElementById('modalMemberTitle');
+        const movieBtn = document.getElementById('switchMovieBtn');
+        const seriesBtn = document.getElementById('switchSeriesBtn');
+        const topFourBtn = document.getElementById('topFourToggleBtn');
+        const topFourText = document.getElementById('topFourToggleText');
+        const topFourArrow = document.getElementById('memberTopFourArrow');
+        const allOptText = document.getElementById('allOptText');
+        const topFourContainer = document.getElementById('memberTopFourContainer');
+        const searchInput = document.getElementById('memberSearchInput');
+        const ratingFilter = document.getElementById('memberRatingFilter');
+        const favoriteFilter = document.getElementById('memberFavoriteFilter');
+
+        if (currentMediaType === 'movie') {
+            titleEl.innerHTML = `<span class="text-amber-400 font-semibold">${currentUsername}</span> <span class="text-amber-400">- Film Şeridi</span>`;
+            modalBox.style.borderColor = "rgba(245, 158, 11, 0.4)"; // Amber
+            modalHeader.className = "relative z-10 flex flex-wrap justify-between items-center mb-4 border-b border-amber-500/30 pb-3 flex-shrink-0 gap-3";
+            movieBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 shadow";
+            seriesBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white";
+            topFourBtn.className = "w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 py-2.5 px-4 rounded-xl text-xs font-bold transition flex justify-between items-center shadow-md";
+            topFourText.innerHTML = "Favori Filmler";
+            topFourArrow.className = "text-amber-400 font-bold";
+            allOptText.innerText = "Tüm Filmler";
+            topFourContainer.className = "hidden mt-3 bg-black/90 p-4 rounded-2xl border border-amber-500/40 shadow-2xl";
+            
+            // Input ve Select odaklanma (focus) renkleri
+            searchInput.className = "flex-grow bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400";
+            ratingFilter.className = "bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400";
+            favoriteFilter.className = "bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400";
+        } else {
+            titleEl.innerHTML = `<span class="text-cyan-400 font-semibold">${currentUsername}</span> <span class="text-cyan-400">- Dizi Şeridi</span>`;
+            modalBox.style.borderColor = "rgba(6, 182, 212, 0.8)"; // Cyan
+            modalHeader.className = "relative z-10 flex flex-wrap justify-between items-center mb-4 border-b border-cyan-500/30 pb-3 flex-shrink-0 gap-3";
+            movieBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white";
+            seriesBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-cyan-500 text-slate-950 shadow";
+            topFourBtn.className = "w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 py-2.5 px-4 rounded-xl text-xs font-bold transition flex justify-between items-center shadow-md";
+            topFourText.innerHTML = "Favori Diziler";
+            topFourArrow.className = "text-cyan-400 font-bold";
+            allOptText.innerText = "Tüm Diziler";
+            topFourContainer.className = "hidden mt-3 bg-black/90 p-4 rounded-2xl border border-cyan-500/50 shadow-2xl";
+            
+            // Input ve Select odaklanma (focus) renkleri cyan yapıldı
+            searchInput.className = "flex-grow bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400";
+            ratingFilter.className = "bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400";
+            favoriteFilter.className = "bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400";
+        }
+    }
+
+    function toggleMemberTopFour() {
+        const container = document.getElementById('memberTopFourContainer');
+        const arrow = document.getElementById('memberTopFourArrow');
+        container.classList.toggle('hidden');
+        arrow.innerText = container.classList.contains('hidden') ? '▼' : '▲';
+    }
+
+    function renderMemberContent() {
+        let topFourGrid = document.getElementById('memberTopFourGrid');
+        let userTopFour = currentMediaType === 'movie' 
+            ? (memberTopFourData[currentUsername] || [null, null, null, null])
+            : (memberTopFourSeriesData[currentUsername] || [null, null, null, null]);
+        
+        let topFourHtml = '';
+        let badgeColor = currentMediaType === 'movie' ? 'bg-amber-500 text-slate-950' : 'bg-cyan-500 text-slate-950';
+        let hoverColor = currentMediaType === 'movie' ? 'hover:text-amber-300' : 'hover:text-cyan-300';
+
+        userTopFour.forEach((item, index) => {
+            if (item) {
+                let linkUrl = currentMediaType === 'movie' ? `/movie/${item.movie_id}` : `/series/${item.series_id}`;
+                topFourHtml += `
+                    <div class="bg-black/80 border border-white/15 rounded-xl p-3 flex flex-col items-center justify-between relative">
+                        <span class="absolute top-2 left-2 ${badgeColor} px-1.5 py-0.5 rounded text-[9px] font-extrabold z-10">#${index + 1}</span>
+                        <a href="${linkUrl}" class="block mt-2">
+                            <img src="${item.poster_url}" class="w-28 h-40 object-cover rounded-xl shadow-lg mb-2 border border-white/15 hover:scale-105 transition">
+                        </a>
+                        <a href="${linkUrl}" class="text-xs font-bold text-white text-center truncate w-full ${hoverColor} transition">${item.title}</a>
+                    </div>
+                `;
+            } else {
+                topFourHtml += `
+                    <div class="bg-black/80 border border-white/15 rounded-xl p-3 flex flex-col items-center justify-center relative min-h-[160px]">
+                        <span class="absolute top-2 left-2 ${badgeColor} px-1.5 py-0.5 rounded text-[9px] font-extrabold z-10">#${index + 1}</span>
+                        <span class="text-xs text-slate-500 italic">Boş Slot</span>
+                    </div>
+                `;
+            }
+        });
+        topFourGrid.innerHTML = topFourHtml;
+
+        let container = document.getElementById('memberFilmContainer');
+        let rawItems = currentMediaType === 'movie' 
+            ? (memberWatchedData[currentUsername] || [])
+            : (memberSeriesWatchedData[currentUsername] || []);
+
+        const query = document.getElementById('memberSearchInput').value.toLowerCase().trim();
+        const targetRating = document.getElementById('memberRatingFilter').value;
+        const favoriteOnly = document.getElementById('memberFavoriteFilter').value === 'favorite';
+
+        let items = rawItems.filter(item => {
+            let title = (item.title || "").toLowerCase();
+            let director = (item.director || "").toLowerCase();
+            let rating = Math.floor(item.user_rating || 0);
+            let isFav = item.user_favorite ? true : false;
+
+            let matchesQuery = title.includes(query) || director.includes(query);
+            let matchesRating = (targetRating === "" || rating === parseInt(targetRating));
+            let matchesFavorite = (!favoriteOnly || isFav);
+
+            return matchesQuery && matchesRating && matchesFavorite;
+        });
+
+        if (items.length === 0) {
+            let labelText = currentMediaType === 'movie' ? 'film' : 'dizi';
+            container.innerHTML = `<div class="text-slate-400 text-sm py-16 text-center w-full">Bu kullanıcının kriterlere uygun izlediği ${labelText} bulunmuyor.</div>`;
+        } else {
+            let borderStyle = currentMediaType === 'movie' ? 'border-amber-500/70 hover:border-amber-300' : 'border-cyan-500/70 hover:border-cyan-300';
+            let titleHover = currentMediaType === 'movie' ? 'group-hover:text-amber-300' : 'group-hover:text-cyan-300';
+            let ratingColor = currentMediaType === 'movie' ? 'text-amber-400' : 'text-cyan-400';
+
+            let html = `
+                <div class="relative bg-black border-y-[22px] border-black shadow-[0_0_50px_rgba(0,0,0,0.95)] py-10 px-8 flex items-center gap-10 min-w-max my-auto">
+                    <div class="absolute top-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        ${'<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>'.repeat(40)}
+                    </div>
+                    <div class="absolute bottom-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        ${'<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>'.repeat(40)}
+                    </div>
+            `;
+
+            items.forEach(item => {
+                let detailUrl = currentMediaType === 'movie' ? `/movie/${item.movie_id}` : `/series/${item.series_id}`;
+                html += `
+                    <div class="film-card bg-[#121418] border-2 ${borderStyle} rounded-xl p-4 w-52 flex flex-col items-center shadow-[0_15px_30px_rgba(0,0,0,0.9)] relative group transition transform hover:-translate-y-2 flex-shrink-0">
+                        <a href="${detailUrl}" class="w-full flex flex-col items-center">
+                            <img src="${item.poster_url}" class="w-36 h-48 object-cover rounded-lg shadow-md mb-3 border border-white/10 group-hover:scale-105 transition">
+                            <h4 class="font-serif font-bold text-white text-xs text-center h-12 flex items-center justify-center w-full leading-tight mb-1 ${titleHover} transition">${item.title}</h4>
+                        </a>
+                        <span class="text-[10px] text-emerald-400 mb-2 font-semibold">İzleme: ${item.scheduled_date || 'Belirtilmemiş'}</span>
+                        <div class="w-full space-y-1 text-[11px] bg-black/80 p-2 rounded-lg border border-white/10 shadow-inner">
+                            <div class="flex justify-between items-center text-rose-400 font-semibold"><span>Sen:</span><span class="${ratingColor}">★ ${item.user_rating}</span></div>
+                            <div class="flex justify-between items-center text-cyan-400 font-semibold"><span>Partner:</span><span class="${ratingColor}">★ ${item.partner_rating}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+    }
+
+    function closeMemberFilmModal() {
+        document.getElementById('memberFilmModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function openFriendCommentsModal(username) {
+        document.getElementById('friendCommentsModalTitle').innerText = username + " - Yorumlar";
+        let container = document.getElementById('friendCommentsContainer');
+        container.innerHTML = "";
+
+        let userDataMovies = memberWatchedData[username] || [];
+        let userDataSeries = memberSeriesWatchedData[username] || [];
+        let allItems = [...userDataMovies, ...userDataSeries];
+        let commentedItems = allItems.filter(item => item.user_comment && item.user_comment.trim() !== "");
+
+        if (commentedItems.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-16 bg-[#0d0e15] border border-white/10 rounded-3xl">
+                    <p class="text-slate-400 text-xs font-semibold">Bu kullanıcının henüz yapılmış bir yorumu bulunmuyor.</p>
+                </div>
+            `;
+        } else {
+            let html = `<div class="space-y-6">`;
+            
+            commentedItems.forEach(item => {
+                let detailLink = item.movie_id ? `/movie/${item.movie_id}` : `/series/${item.series_id}`;
+                let ratingHtml = item.user_rating && item.user_rating > 0 ? `
+                    <div class="flex items-center gap-1.5 bg-black/50 border border-amber-500/30 px-3 py-1.5 rounded-xl text-amber-400 shadow-inner">
+                        <span class="text-amber-400">★</span>
+                        <span class="text-xs font-bold text-slate-200">${item.user_rating}</span>
+                    </div>
+                ` : '';
+
+                let favHtml = item.user_favorite ? `
+                    <div class="flex items-center justify-center bg-black/50 border border-rose-500/30 w-9 h-9 rounded-xl shadow-inner">
+                        <span class="text-rose-500 text-sm">❤️</span>
+                    </div>
+                ` : '';
+
+                html += `
+                    <div class="bg-[#0d0e15] border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-start gap-6 shadow-2xl">
+                        <a href="${detailLink}" class="w-28 h-40 flex-shrink-0 bg-black/60 rounded-xl overflow-hidden border border-white/10 shadow-inner group mx-auto md:mx-0">
+                            ${item.poster_url ? `<img src="${item.poster_url}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">` : `<div class="w-full h-full flex items-center justify-center text-[10px] text-slate-500 text-center p-1">Poster Yok</div>`}
+                        </a>
+                        <div class="flex-grow w-full space-y-4 overflow-hidden">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                                <a href="${detailLink}" class="font-serif font-bold text-amber-400 hover:underline text-lg tracking-wide truncate max-w-xl">
+                                    ${item.title}
+                                </a>
+                                <div class="flex items-center gap-2.5 flex-shrink-0">
+                                    ${ratingHtml}
+                                    ${favHtml}
+                                </div>
+                            </div>
+                            <div class="bg-black/50 p-4 rounded-xl border border-white/5 w-full">
+                                <p class="text-xs text-slate-300 leading-relaxed break-all whitespace-normal">
+                                    "${item.user_comment.trim()}"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        document.getElementById('friendCommentsModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeFriendCommentsModal() {
+        document.getElementById('friendCommentsModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById('memberFilmContainer');
+        if (container) {
+            container.addEventListener('wheel', function(e) {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    container.scrollLeft += e.deltaY * 1.5;
+                }
+            }, { passive: false });
+        }
+    });
+</script>
+{% endblock %}

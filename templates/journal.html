@@ -1,0 +1,1207 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-10 font-sans text-slate-100">
+    
+    <!-- Film Şeridi ve Dizi Şeridi Yan Yana Banner Alanı -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        
+        <!-- Film Şeridi Banner -->
+        <div onclick="openFilmStripModal()" class="cursor-pointer relative overflow-hidden rounded-2xl p-6 border border-amber-500/40 shadow-2xl group transition transform hover:scale-[1.01] bg-black flex flex-col justify-between">
+            <img src="{{ url_for('static', filename='images/the_end_bg.jpg') }}" class="absolute inset-0 w-full h-full object-cover filter blur-[0.5px] opacity-70 scale-105 pointer-events-none">
+            <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/80"></div>
+            
+            <div class="relative z-10 flex justify-between items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-serif font-bold text-white mb-1 group-hover:text-amber-300 transition">Film Şeridi</h1>
+                    <p class="text-slate-300 text-[11px]">Sinema film ve yıldız arşiviniz.</p>
+                </div>
+                
+                <div class="bg-black/80 border border-white/20 px-4 py-2 rounded-xl text-center shadow-lg flex-shrink-0">
+                    <span class="block text-xl font-serif font-bold text-amber-400">{{ watched_items|length }}</span>
+                    <span class="text-[9px] uppercase tracking-widest text-slate-300 font-semibold">İzlenen Film</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dizi Şeridi Banner -->
+        <div onclick="openSeriesStripModal()" class="cursor-pointer relative overflow-hidden rounded-2xl p-6 border border-cyan-500/40 shadow-2xl group transition transform hover:scale-[1.01] bg-black flex flex-col justify-between">
+            <img src="{{ url_for('static', filename='images/the_end_bg.jpg') }}" class="absolute inset-0 w-full h-full object-cover filter blur-[0.5px] opacity-70 scale-105 pointer-events-none">
+            <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/80"></div>
+            
+            <div class="relative z-10 flex justify-between items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-serif font-bold text-white mb-1 group-hover:text-cyan-300 transition">Dizi Şeridi</h1>
+                    <p class="text-slate-300 text-[11px]">Televizyon dizi ve yıldız arşiviniz.</p>
+                </div>
+                
+                <div class="bg-black/80 border border-white/20 px-4 py-2 rounded-xl text-center shadow-lg flex-shrink-0">
+                    <span class="block text-xl font-serif font-bold text-cyan-400">{{ watched_series_items|length }}</span>
+                    <span class="text-[9px] uppercase tracking-widest text-slate-300 font-semibold">İzlenen Dizi</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<!-- Takvime Film/Dizi Planla Formu (Eşit Genişlikte Kutular) -->
+    <div class="bg-black/40 border border-white/10 rounded-2xl p-6 mb-12 backdrop-blur shadow-xl">
+        <h2 class="text-lg font-serif font-bold text-slate-100 mb-4">Takvime Film veya Dizi Planla</h2>
+        <form action="{{ url_for('assign_journal') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+            <div class="lg:col-span-3">
+                <label class="block text-xs uppercase tracking-widest text-slate-300 mb-2 font-semibold">Film Seçin</label>
+                <select name="movie_id" class="w-full bg-[#14181c] border border-white/15 rounded-xl p-3 text-slate-100 text-xs focus:outline-none focus:border-rose-500">
+                    <option value="">Film Seçilmedi</option>
+                    {% for m in all_movies %}<option value="{{ m.id }}">{{ m.title }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="lg:col-span-3">
+                <label class="block text-xs uppercase tracking-widest text-slate-300 mb-2 font-semibold">Dizi Seçin</label>
+                <select name="series_id" class="w-full bg-[#14181c] border border-white/15 rounded-xl p-3 text-slate-100 text-xs focus:outline-none focus:border-rose-500">
+                    <option value="">Dizi Seçilmedi</option>
+                    {% for s in all_series %}<option value="{{ s.id }}">{{ s.title }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="lg:col-span-2">
+                <label class="block text-xs uppercase tracking-widest text-slate-300 mb-2 font-semibold">Kiminle?</label>
+                <select name="partner_name" class="w-full bg-[#14181c] border border-white/15 rounded-xl p-3 text-slate-100 text-xs focus:outline-none focus:border-rose-500">
+                    <option value="">Yalnız / Belirtilmemiş</option>
+                    {% for f in friends %}<option value="{{ f.username }}">{{ f.username }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="lg:col-span-3">
+                <label class="block text-xs uppercase tracking-widest text-slate-300 mb-2 font-semibold">Tarih ve Saat</label>
+                <div class="flex gap-2">
+                    <input type="date" name="scheduled_date" required class="w-full bg-[#14181c] border border-white/15 rounded-xl p-2.5 text-slate-100 text-xs [color-scheme:dark]">
+                    <input type="time" name="time_slot" value="20:00" class="w-24 bg-[#14181c] border border-white/15 rounded-xl p-2.5 text-slate-100 text-xs [color-scheme:dark]">
+                </div>
+            </div>
+            <div class="lg:col-span-1">
+                <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-xl text-xs font-bold transition shadow-lg h-[42px] whitespace-nowrap">Planla</button>
+            </div>
+        </form>
+    </div>
+    
+<!-- Sinematik Film Şeridi Modalı -->
+<div id="filmStripModal" class="fixed inset-x-0 bottom-0 top-[69px] bg-black/60 backdrop-blur-md hidden z-40 flex items-center justify-center p-4">
+    <div class="relative rounded-3xl p-6 max-w-6xl w-full shadow-2xl overflow-hidden border border-amber-500/40 bg-[#050608]/95 max-h-[90vh] flex flex-col">
+        
+        <div class="relative z-10 flex justify-between items-center mb-4 border-b border-amber-500/30 pb-3 flex-shrink-0">
+            <h3 class="text-xl font-serif font-bold text-amber-300">Film Şeridi</h3>
+            <button onclick="closeFilmStripModal()" class="bg-rose-950 hover:bg-rose-900 text-white px-5 py-2 rounded-full text-xs font-bold transition shadow-lg">Kapat</button>
+        </div>
+
+        <!-- TOP 4 BUTON İÇİNE GÖMÜLÜ ÖZEL VİTRİN ALANI -->
+        <div class="relative z-10 mb-4 flex-shrink-0">
+            <button onclick="toggleTopFourSection()" class="w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 py-2.5 px-4 rounded-xl text-xs font-bold transition flex justify-between items-center shadow-md">
+                <span class="flex items-center gap-2">Favori Filmler</span>
+                <span id="topFourArrow" class="text-amber-400 font-bold">▼</span>
+            </button>
+            
+            <div id="topFourContainer" class="hidden mt-3 bg-black/90 p-4 rounded-2xl border border-amber-500/40 shadow-2xl">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {% for i in range(1, 5) %}
+                        {% set slot_item = top_four_dict.get(i) %}
+                        <div class="bg-black/80 border border-white/15 rounded-xl p-3 flex flex-col items-center justify-between relative group">
+                            <span class="absolute top-2 left-2 bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded text-[9px] font-extrabold z-10">#{{ i }}</span>
+                            
+                            {% if slot_item and slot_item.movie %}
+                                <form action="{{ url_for('update_top_four', slot_index=i) }}" method="POST" class="absolute top-2 right-2 z-10">
+                                    <input type="hidden" name="movie_id" value="">
+                                    <button type="submit" class="w-5 h-5 bg-rose-950 hover:bg-rose-800 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow transition" title="Filmi Kaldır">✕</button>
+                                </form>
+
+                                <a href="/movie/{{ slot_item.movie_id }}" class="group/poster block mt-2">
+                                    <img src="{{ slot_item.movie.poster_url }}" class="w-28 h-40 object-cover rounded-xl shadow-lg mb-2 border border-white/15 group-hover/poster:scale-105 transition">
+                                </a>
+                                <a href="/movie/{{ slot_item.movie_id }}" class="text-xs font-bold text-white text-center truncate w-full mb-1 hover:text-amber-300 transition">{{ slot_item.movie.title }}</a>
+                            {% else %}
+                                <div class="w-full flex flex-col items-center justify-center my-auto py-2">
+                                    <div class="w-24 h-32 bg-white/5 border border-dashed border-white/20 rounded-xl flex items-center justify-center mb-3 text-slate-500 text-[10px] text-center p-2">Boş Slot</div>
+                                    <form action="{{ url_for('update_top_four', slot_index=i) }}" method="POST" class="w-full">
+                                        <select name="movie_id" onchange="this.form.submit()" class="w-full bg-[#14181c] border border-amber-500/50 text-amber-300 text-[11px] rounded-lg p-2 focus:outline-none focus:border-amber-400 cursor-pointer font-semibold shadow">
+                                            <option value="">Film Seç...</option>
+                                            {% for m in all_movies %}
+                                                <option value="{{ m.id }}">{{ m.title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- FİLTRELEME VE ARAMA ÇUBUĞU ALANI -->
+        <div class="relative z-10 flex flex-wrap gap-3 items-center mb-4 bg-black/60 p-3 rounded-2xl border border-white/10 flex-shrink-0">
+            <input type="text" id="filmSearchInput" oninput="filterFilmStrip()" placeholder="Film veya yönetmen ara..." class="flex-grow bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400">
+            
+            <select id="filmRatingFilter" onchange="filterFilmStrip()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400">
+                <option value="">Tüm Puanlar</option>
+                <option value="5">5 Yıldız</option>
+                <option value="4">4 Yıldız</option>
+                <option value="3">3 Yıldız</option>
+                <option value="2">2 Yıldız</option>
+                <option value="1">1 Yıldız</option>
+            </select>
+
+            <select id="filmPartnerFilter" onchange="filterFilmStrip()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400">
+                <option value="">Tüm İzleyiciler</option>
+                <option value="yalniz">Yalnız İzlenenler</option>
+                {% for f in friends %}
+                <option value="{{ f.username | lower }}">{{ f.username }} ile</option>
+                {% endfor %}
+            </select>
+
+            <select id="filmFavoriteFilter" onchange="filterFilmStrip()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400">
+                <option value="">Tüm Filmler</option>
+                <option value="favorite">Sadece Kalplenenler (Favoriler)</option>
+            </select>
+        </div>
+
+        <!-- Yatay Film Şeridi Alanı -->
+        <div id="filmStripContainer" class="relative z-10 overflow-x-auto overflow-y-hidden py-6 my-auto flex-grow flex items-center scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-amber-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-black/80 [&::-webkit-scrollbar-track]:rounded-full">
+            {% if watched_items %}
+                <div class="relative bg-black border-y-[22px] border-black shadow-[0_0_50px_rgba(0,0,0,0.95)] py-10 px-8 flex items-center gap-10 min-w-max my-auto">
+                    <div class="absolute top-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        {% for _ in range(40) %}<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>{% endfor %}
+                    </div>
+                    <div class="absolute bottom-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        {% for _ in range(40) %}<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>{% endfor %}
+                    </div>
+
+                    {% for item in watched_items %}
+                    <div class="film-card bg-[#121418] border-2 border-amber-500/70 rounded-xl p-4 w-52 flex flex-col items-center shadow-[0_15px_30px_rgba(0,0,0,0.9)] relative group hover:border-amber-300 transition transform hover:-translate-y-2 flex-shrink-0"
+                         data-title="{{ item.movie.title | lower }}"
+                         data-director="{{ item.movie.director | default('', true) | lower }}"
+                         data-rating="{{ item.user_rating }}"
+                         data-partner="{{ item.partner_name | default('', true) | lower }}"
+                         data-favorite="{{ 'true' if item.user_favorite else 'false' }}">
+                        
+                        <a href="/movie/{{ item.movie_id }}" class="w-full flex flex-col items-center">
+                            <img src="{{ item.movie.poster_url }}" class="w-36 h-48 object-cover rounded-lg shadow-md mb-3 border border-white/10 group-hover:scale-105 transition">
+                            <h4 class="font-serif font-bold text-white text-xs text-center h-12 flex items-center justify-center w-full leading-tight mb-1 group-hover:text-amber-300 transition">{{ item.movie.title }}</h4>
+                        </a>
+                        <span class="text-[10px] text-emerald-400 mb-2 font-semibold">İzleme: {{ item.scheduled_date }}</span>
+                        <div class="w-full space-y-1 text-[11px] bg-black/80 p-2 rounded-lg border border-white/10 shadow-inner">
+                            <div class="flex justify-between items-center text-rose-400 font-semibold"><span>Sen:</span><span class="text-amber-400">★ {{ item.user_rating }}</span></div>
+                            <div class="flex justify-between items-center text-cyan-400 font-semibold"><span>Partner:</span><span class="text-amber-400">★ {{ item.partner_rating }}</span></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-slate-400 text-sm py-16 text-center w-full">Henüz izlenen film bulunmuyor.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Sinematik Dizi Şeridi Modalı -->
+<div id="seriesStripModal" class="fixed inset-x-0 bottom-0 top-[69px] bg-black/60 backdrop-blur-md hidden z-40 flex items-center justify-center p-4">
+    <div class="relative rounded-3xl p-6 max-w-6xl w-full shadow-2xl overflow-hidden border border-cyan-500/40 bg-[#050608]/95 max-h-[90vh] flex flex-col">
+        <div class="relative z-10 flex justify-between items-center mb-4 border-b border-cyan-500/30 pb-3 flex-shrink-0">
+            <h3 class="text-xl font-serif font-bold text-cyan-300">Dizi Şeridi</h3>
+            <button onclick="closeSeriesStripModal()" class="bg-rose-950 hover:bg-rose-900 text-white px-5 py-2 rounded-full text-xs font-bold transition shadow-lg">Kapat</button>
+        </div>
+
+        <!-- FAVORİ 4 DİZİ VİTRİNİ -->
+        <div class="relative z-10 mb-4 flex-shrink-0">
+            <button onclick="toggleTopFourSeriesSection()" class="w-full bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 py-2.5 px-4 rounded-xl text-xs font-bold transition flex justify-between items-center shadow-md">
+                <span class="flex items-center gap-2">Favori Diziler</span>
+                <span id="topFourSeriesArrow" class="text-cyan-400 font-bold">▼</span>
+            </button>
+            
+            <div id="topFourSeriesContainer" class="hidden mt-3 bg-black/90 p-4 rounded-2xl border border-cyan-500/40 shadow-2xl">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {% for i in range(1, 5) %}
+                        {% set slot_item = top_four_series_dict.get(i) %}
+                        <div class="bg-black/80 border border-white/15 rounded-xl p-3 flex flex-col items-center justify-between relative group">
+                            <span class="absolute top-2 left-2 bg-cyan-500 text-slate-950 px-1.5 py-0.5 rounded text-[9px] font-extrabold z-10">#{{ i }}</span>
+                            
+                            {% if slot_item and slot_item.series %}
+                                <form action="{{ url_for('update_top_four_series', slot_index=i) }}" method="POST" class="absolute top-2 right-2 z-10">
+                                    <input type="hidden" name="series_id" value="">
+                                    <button type="submit" class="w-5 h-5 bg-rose-950 hover:bg-rose-800 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow transition" title="Diziyi Kaldır">✕</button>
+                                </form>
+
+                                <a href="/series/{{ slot_item.series_id }}" class="group/poster block mt-2">
+                                    <img src="{{ slot_item.series.poster_url }}" class="w-28 h-40 object-cover rounded-xl shadow-lg mb-2 border border-white/15 group-hover/poster:scale-105 transition">
+                                </a>
+                                <a href="/series/{{ slot_item.series_id }}" class="text-xs font-bold text-white text-center truncate w-full mb-1 hover:text-cyan-300 transition">{{ slot_item.series.title }}</a>
+                            {% else %}
+                                <div class="w-full flex flex-col items-center justify-center my-auto py-2">
+                                    <div class="w-24 h-32 bg-white/5 border border-dashed border-white/20 rounded-xl flex items-center justify-center mb-3 text-slate-500 text-[10px] text-center p-2">Boş Slot</div>
+                                    <form action="{{ url_for('update_top_four_series', slot_index=i) }}" method="POST" class="w-full">
+                                        <select name="series_id" onchange="this.form.submit()" class="w-full bg-[#14181c] border border-cyan-500/50 text-cyan-300 text-[11px] rounded-lg p-2 focus:outline-none focus:border-cyan-400 cursor-pointer font-semibold shadow">
+                                            <option value="">Dizi Seç...</option>
+                                            {% for s in all_series %}
+                                                <option value="{{ s.id }}">{{ s.title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- FİLTRELEME ÇUBUĞU -->
+        <div class="relative z-10 flex flex-wrap gap-3 items-center mb-4 bg-black/60 p-3 rounded-2xl border border-white/10 flex-shrink-0">
+            <input type="text" id="seriesSearchInput" oninput="filterSeriesStrip()" placeholder="Dizi veya yapımcı ara..." class="flex-grow bg-black/50 border border-white/15 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400">
+            
+            <select id="seriesRatingFilter" onchange="filterSeriesStrip()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400">
+                <option value="">Tüm Puanlar</option>
+                <option value="5">5 Yıldız</option>
+                <option value="4">4 Yıldız</option>
+                <option value="3">3 Yıldız</option>
+                <option value="2">2 Yıldız</option>
+                <option value="1">1 Yıldız</option>
+            </select>
+
+            <select id="seriesPartnerFilter" onchange="filterSeriesStrip()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400">
+                <option value="">Tüm İzleyiciler</option>
+                <option value="yalniz">Yalnız İzlenenler</option>
+                {% for f in friends %}
+                <option value="{{ f.username | lower }}">{{ f.username }} ile</option>
+                {% endfor %}
+            </select>
+
+            <select id="seriesFavoriteFilter" onchange="filterSeriesStrip()" class="bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400">
+                <option value="">Tüm Diziler</option>
+                <option value="favorite">Sadece Kalplenenler (Favoriler)</option>
+            </select>
+        </div>
+
+        <!-- YATAY DİZİ ŞERİDİ LİSTESİ -->
+        <div id="seriesStripContainer" class="relative z-10 overflow-x-auto overflow-y-hidden py-6 my-auto flex-grow flex items-center scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-cyan-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-black/80 [&::-webkit-scrollbar-track]:rounded-full">
+            {% if watched_series_items %}
+                <div class="relative bg-black border-y-[22px] border-black shadow-[0_0_50px_rgba(0,0,0,0.95)] py-10 px-8 flex items-center gap-10 min-w-max my-auto">
+                    <div class="absolute top-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        {% for _ in range(40) %}<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>{% endfor %}
+                    </div>
+                    <div class="absolute bottom-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        {% for _ in range(40) %}<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>{% endfor %}
+                    </div>
+
+                    {% for item in watched_series_items %}
+                    <div class="series-card bg-[#121418] border-2 border-cyan-500/70 rounded-xl p-4 w-52 flex flex-col items-center shadow-[0_15px_30px_rgba(0,0,0,0.9)] relative group hover:border-cyan-300 transition transform hover:-translate-y-2 flex-shrink-0"
+                         data-title="{{ item.series.title | lower }}"
+                         data-creator="{{ item.series.creator | default('', true) | lower }}"
+                         data-rating="{{ item.user_rating }}"
+                         data-partner="{{ item.partner_name | default('', true) | lower }}"
+                         data-favorite="{{ 'true' if item.user_favorite else 'false' }}">
+                        
+                        <a href="/series/{{ item.series_id }}" class="w-full flex flex-col items-center">
+                            <img src="{{ item.series.poster_url }}" class="w-36 h-48 object-cover rounded-lg shadow-md mb-3 border border-white/10 group-hover:scale-105 transition">
+                            <h4 class="font-serif font-bold text-white text-xs text-center h-12 flex items-center justify-center w-full leading-tight mb-1 group-hover:text-cyan-300 transition">{{ item.series.title }}</h4>
+                        </a>
+                        <span class="text-[10px] text-emerald-400 mb-2 font-semibold">İzleme: {{ item.scheduled_date }}</span>
+                        <div class="w-full space-y-1 text-[11px] bg-black/80 p-2 rounded-lg border border-white/10 shadow-inner">
+                            <div class="flex justify-between items-center text-rose-400 font-semibold"><span>Sen:</span><span class="text-cyan-400">★ {{ item.user_rating }}</span></div>
+                            <div class="flex justify-between items-center text-cyan-400 font-semibold"><span>Partner:</span><span class="text-cyan-400">★ {{ item.partner_rating }}</span></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-slate-400 text-sm py-16 text-center w-full">Henüz izlenen dizi bulunmuyor.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function openSeriesStripModal() {
+        document.getElementById('seriesStripModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+    function closeSeriesStripModal() {
+        document.getElementById('seriesStripModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+    function toggleTopFourSeriesSection() {
+        const container = document.getElementById('topFourSeriesContainer');
+        const arrow = document.getElementById('topFourSeriesArrow');
+        container.classList.toggle('hidden');
+        arrow.innerText = container.classList.contains('hidden') ? '▼' : '▲';
+    }
+    function filterSeriesStrip() {
+        const query = document.getElementById('seriesSearchInput').value.toLowerCase().trim();
+        const targetRating = document.getElementById('seriesRatingFilter').value;
+        const targetPartner = document.getElementById('seriesPartnerFilter').value.toLowerCase().trim();
+        const favoriteOnly = document.getElementById('seriesFavoriteFilter').value === 'favorite';
+
+        document.querySelectorAll('.series-card').forEach(card => {
+            const title = card.getAttribute('data-title');
+            const creator = card.getAttribute('data-creator');
+            const rating = Math.floor(parseFloat(card.getAttribute('data-rating')) || 0);
+            const partner = card.getAttribute('data-partner');
+            const isFav = card.getAttribute('data-favorite') === 'true';
+
+            const matchesQuery = title.includes(query) || creator.includes(query);
+            let matchesRating = targetRating === "" || rating === parseInt(targetRating);
+            let matchesPartner = targetPartner === "" || (targetPartner === "yalniz" ? (!partner || partner.includes("yalnız")) : partner.includes(targetPartner));
+            const matchesFavorite = !favoriteOnly || isFav;
+
+            card.style.display = (matchesQuery && matchesRating && matchesPartner && matchesFavorite) ? 'flex' : 'none';
+        });
+    }
+</script>
+<!-- Top 4 Bölümünü Açıp Kapatan Küçük Fonksiyon -->
+<script>
+    function toggleTopFourSection() {
+        const container = document.getElementById('topFourContainer');
+        const arrow = document.getElementById('topFourArrow');
+        if (container.classList.contains('hidden')) {
+            container.classList.remove('hidden');
+            arrow.innerText = '▲';
+        } else {
+            container.classList.add('hidden');
+            arrow.innerText = '▼';
+        }
+    }
+</script>
+<script>
+    // Arama ve Filtreleme Fonksiyonu
+    function filterFilmStrip() {
+        const query = document.getElementById('filmSearchInput').value.toLowerCase().trim();
+        const targetRating = document.getElementById('filmRatingFilter').value; // '1', '2', '3', '4', '5' veya ''
+        const targetPartner = document.getElementById('filmPartnerFilter').value.toLowerCase().trim();
+        const favoriteOnly = document.getElementById('filmFavoriteFilter').value === 'favorite';
+
+        const cards = document.querySelectorAll('.film-card');
+
+        cards.forEach(card => {
+            const title = card.getAttribute('data-title');
+            const director = card.getAttribute('data-director');
+            const rating = Math.floor(parseFloat(card.getAttribute('data-rating')) || 0); // Tam sayı yıldız eşleşmesi için
+            const partner = card.getAttribute('data-partner');
+            const isFav = card.getAttribute('data-favorite') === 'true';
+
+            // Eşleşme kontrolleri
+            const matchesQuery = title.includes(query) || director.includes(query);
+            
+            // Yıldız filtresi (Tam eşleşme: Örneğin 4 seçildiyse sadece 4 yıldızlılar)
+            let matchesRating = true;
+            if (targetRating !== "") {
+                matchesRating = (rating === parseInt(targetRating));
+            }
+
+            // Partner filtresi
+            let matchesPartner = true;
+            if (targetPartner === "yalniz") {
+                matchesPartner = (!partner || partner === "yalnız / belirtilmemiş" || partner === "yalnız" || partner === "");
+            } else if (targetPartner !== "") {
+                matchesPartner = partner.includes(targetPartner);
+            }
+
+            const matchesFavorite = !favoriteOnly || isFav;
+
+            if (matchesQuery && matchesRating && matchesPartner && matchesFavorite) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Fare tekerleği ile yatay kaydırma desteği
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById('filmStripContainer');
+        if (container) {
+            container.addEventListener('wheel', function(e) {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    container.scrollLeft += e.deltaY * 1.5;
+                }
+            }, { passive: false });
+        }
+    });
+</script>
+<style>
+    /* Yildiz Degerlendirme Sistemi Stilleri */
+    .star-rating {
+        display: inline-flex;
+        cursor: pointer;
+        font-size: 1.5rem;
+        gap: 0.2rem;
+    }
+    .star-rating .star {
+        color: #475569;
+        position: relative;
+        transition: color 0.15s ease;
+    }
+    .star-rating .star.filled {
+        color: #fbbf24;
+        filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6));
+    }
+    .star-rating .star.half::before {
+        content: '★';
+        position: absolute;
+        left: 0;
+        width: 50%;
+        overflow: hidden;
+        color: #fbbf24;
+        filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6));
+    }
+</style>
+<!-- Bu Aya Eklenen ve Günü/Saati Belirlenmemiş Filmler -->
+    {% if unassigned_movies %}
+    <div class="bg-black/40 border border-white/10 rounded-2xl p-6 mb-12 backdrop-blur shadow-xl">
+        <h2 class="text-base font-serif font-bold text-amber-400 mb-4">Bu Aya Eklenen ve Günü/Saati Belirlenmemiş Filmler</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for item in unassigned_movies %}
+            <div class="bg-[#121418] border border-white/15 rounded-xl p-4 flex flex-col gap-3 shadow-md relative">
+                <div class="flex items-center justify-between gap-3">
+                    <a href="{{ url_for('movie_detail', movie_id=item.movie.id) }}" class="flex items-center gap-3 overflow-hidden">
+                        <img src="{{ item.movie.poster_url }}" class="w-12 h-16 object-cover rounded-lg shadow flex-shrink-0">
+                        <div class="overflow-hidden">
+                            <h4 class="font-serif font-bold text-white text-xs truncate">{{ item.movie.title }}</h4>
+                            <span class="text-[12px] text-amber-400 font-semibold">Tarih Bekleniyor</span>
+                        </div>
+                    </a>
+                    <form action="{{ url_for('remove_month_pool_item', pool_id=item.id) }}" method="POST">
+                        <button type="submit" class="bg-rose-950 hover:bg-rose-900 text-white w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition shadow">✕</button>
+                    </form>
+                </div>
+
+<form action="{{ url_for('assign_from_pool', pool_id=item.id) }}" method="POST" class="space-y-2 pt-2 border-t border-white/10">
+        <div class="flex gap-2">
+        <input type="date" name="scheduled_date" required class="w-full bg-black/50 border border-white/15 rounded-lg p-1.5 text-slate-100 text-[13px] [color-scheme:dark]">
+        <input type="time" name="time_slot" value="20:00" class="w-20 bg-black/50 border border-white/15 rounded-lg p-1.5 text-slate-100 text-[13px] [color-scheme:dark]">
+    </div>
+    <div class="flex gap-2">
+        <select name="partner_name" class="w-full bg-black/50 border border-white/15 rounded-lg p-1.5 text-slate-100 text-[13px]">
+            <option value="">Yalnız</option>
+            {% for f in friends %}<option value="{{ f.username }}">{{ f.username }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition shadow whitespace-nowrap">Ata</button>
+    </div>
+</form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+<!-- Bu Aya Eklenen ve Günü/Saati Belirlenmemiş Diziler -->
+    {% if unassigned_series %}
+    <div class="bg-black/40 border border-cyan-500/20 rounded-2xl p-6 mb-12 backdrop-blur shadow-xl">
+        <h2 class="text-base font-serif font-bold text-cyan-400 mb-4">Bu Aya Eklenen ve Günü/Saati Belirlenmemiş Diziler</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for item in unassigned_series %}
+            <div class="bg-[#121418] border border-white/15 rounded-xl p-4 flex flex-col gap-3 shadow-md relative">
+                <div class="flex items-center justify-between gap-3">
+                    <a href="{{ url_for('series_detail', series_id=item.series.id) }}" class="flex items-center gap-3 overflow-hidden">
+                        <img src="{{ item.series.poster_url }}" class="w-12 h-16 object-cover rounded-lg shadow flex-shrink-0">
+                        <div class="overflow-hidden">
+                            <h4 class="font-serif font-bold text-white text-xs truncate">{{ item.series.title }}</h4>
+                            <span class="text-[12px] text-cyan-400 font-semibold">Tarih Bekleniyor</span>
+                        </div>
+                    </a>
+                    <form action="{{ url_for('remove_series_month_pool_item', pool_id=item.id) }}" method="POST">
+                        <button type="submit" class="bg-rose-950 hover:bg-rose-900 text-white w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition shadow">✕</button>
+                    </form>
+                </div>
+
+<form action="{{ url_for('assign_series_from_pool', pool_id=item.id) }}" method="POST" class="space-y-2 pt-2 border-t border-white/10">
+                        <div class="flex gap-2">
+                        <input type="date" name="scheduled_date" required class="w-full bg-black/50 border border-white/15 rounded-lg p-1.5 text-slate-100 text-[13px] [color-scheme:dark]">
+                        <input type="time" name="time_slot" value="20:00" class="w-20 bg-black/50 border border-white/15 rounded-lg p-1.5 text-slate-100 text-[13px] [color-scheme:dark]">
+                    </div>
+                    <div class="flex gap-2">
+                        <select name="partner_name" class="w-full bg-black/50 border border-white/15 rounded-lg p-1.5 text-slate-100 text-[13px]">
+                            <option value="">Yalnız</option>
+                            {% for f in friends %}<option value="{{ f.username }}">{{ f.username }}</option>{% endfor %}
+                        </select>
+                        <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition shadow whitespace-nowrap">Ata</button>
+                    </div>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Aylik Takvim ve Ay Secme Alani -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h2 id="currentMonthTitle" class="text-xl font-serif font-bold text-white">Eylül 2026 Aylık Program</h2>
+        <div class="flex items-center gap-2">
+            <button onclick="changeMonth(-1)" class="bg-white/10 hover:bg-white/20 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition">Önceki Ay</button>
+            <button onclick="changeMonth(1)" class="bg-white/10 hover:bg-white/20 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition">Gelecek Ay</button>
+        </div>
+    </div>
+
+    <!-- Aylik Takvim Izgarasi -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-16" id="calendarGrid">
+        <!-- Gunler dinamik yuklenir -->
+    </div>
+</div>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,400;1,600&family=Cinzel:wght@600;700&family=Special+Elite&display=swap" rel="stylesheet">
+
+<!-- Otomatik Acilan Bilet Modali -->
+<div id="todayTicketModal" class="fixed inset-0 z-45 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="absolute inset-0 bg-cover bg-center opacity-99 pointer-events-none" style="background-image: url('{{ url_for('static', filename='images/red.jpg') }}');"></div>
+    <div class="absolute inset-0 bg-black/50 pointer-events-none"></div>
+
+    <div class="relative z-10 w-full min-h-screen flex items-center justify-center p-2 sm:p-4">
+        <!-- Mobilde rotasyon sıfırlanır (rotate-0), büyük ekranda eski haline döner (sm:rotate-[-4deg]) -->
+        <div id="ticketContainer" class="transform rotate-0 sm:rotate-[-4deg] shadow-[0_35px_80px_rgba(0,0,0,0.95)] rounded-xl overflow-hidden max-w-sm sm:max-w-md md:max-w-2xl w-full my-auto mx-auto bg-[#d4c5a9] text-slate-900"></div>
+    </div>
+</div>
+
+<!-- Sinematik Film Seridi Modali -->
+<div id="filmStripModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="relative rounded-3xl p-6 max-w-6xl w-full shadow-2xl overflow-hidden border border-amber-500/40 bg-[#050608]/95 max-h-[82vh] flex flex-col">
+        <div class="absolute inset-0 bg-cover bg-center filter blur-[1px] opacity-40 scale-105 pointer-events-none" style="background-image: url('{{ url_for('static', filename='images/the_end_bg.jpg') }}');"></div>
+
+        <div class="relative z-10 flex justify-between items-center mb-4 border-b border-amber-500/30 pb-3 flex-shrink-0">
+            <h3 class="text-xl font-serif font-bold text-amber-300">Film Şeridi</h3>
+            <button onclick="closeFilmStripModal()" class="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-full text-xs font-bold transition shadow-lg">Kapat</button>
+        </div>
+
+        <div id="filmStripContainer" class="relative z-10 overflow-x-auto overflow-y-hidden py-6 my-auto flex-grow flex items-center scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-amber-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-black/80 [&::-webkit-scrollbar-track]:rounded-full">
+            {% if watched_items %}
+                <div class="relative bg-black border-y-[22px] border-black shadow-[0_0_50px_rgba(0,0,0,0.95)] py-10 px-8 flex items-center gap-10 min-w-max my-auto">
+                    <div class="absolute top-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        {% for _ in range(40) %}<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>{% endfor %}
+                    </div>
+                    <div class="absolute bottom-[-19px] left-0 right-0 h-4.5 flex justify-around px-2 overflow-hidden pointer-events-none">
+                        {% for _ in range(40) %}<div class="w-6 h-3 bg-[#161616] border border-white/20 rounded-xs flex-shrink-0 my-0.5"></div>{% endfor %}
+                    </div>
+
+                    {% for item in watched_items %}
+                    <div class="bg-[#121418] border-2 border-amber-500/70 rounded-xl p-4 w-52 flex flex-col items-center shadow-[0_15px_30px_rgba(0,0,0,0.9)] relative group hover:border-amber-300 transition transform hover:-translate-y-2 flex-shrink-0">
+                        <a href="/movie/{{ item.movie_id }}" class="w-full flex flex-col items-center">
+                            <img src="{{ item.movie.poster_url }}" class="w-36 h-48 object-cover rounded-lg shadow-md mb-3 border border-white/10 group-hover:scale-105 transition">
+                            <h4 class="font-serif font-bold text-white text-xs text-center h-12 flex items-center justify-center w-full leading-tight mb-1 group-hover:text-amber-300 transition">{{ item.movie.title }}</h4>
+                        </a>
+                        <span class="text-[10px] text-emerald-400 mb-2 font-semibold">İzleme: {{ item.scheduled_date }}</span>
+                        <div class="w-full space-y-1 text-[11px] bg-black/80 p-2 rounded-lg border border-white/10 shadow-inner">
+                            <div class="flex justify-between items-center text-rose-400 font-semibold"><span>Sen:</span><span class="text-amber-400">★ {{ item.user_rating }}</span></div>
+                            <div class="flex justify-between items-center text-cyan-400 font-semibold"><span>Partner:</span><span class="text-amber-400">★ {{ item.partner_rating }}</span></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-slate-400 text-sm py-16 text-center w-full">Henüz izlenen film bulunmuyor.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById('filmStripContainer');
+        if (container) {
+            container.addEventListener('wheel', function(e) {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    container.scrollLeft += e.deltaY * 1.5;
+                }
+            }, { passive: false });
+        }
+    });
+</script>
+
+<!-- Gunluk Detay Modali -->
+<div id="dayModal" class="fixed inset-x-0 bottom-0 top-[72px] bg-black/75 backdrop-blur-lg hidden z-40 flex items-center justify-center p-4">
+    <div class="relative rounded-3xl p-6 max-w-5xl w-full shadow-2xl overflow-y-auto border border-amber-500/40 bg-[#050608]/95 max-h-[70vh] flex flex-col">
+                <h3 id="modalTitle" class="text-base font-serif font-bold text-amber-300 mb-3 border-b border-white/10 pb-2 flex-shrink-0">Tarih Detayı ve Değerlendirmeler</h3>
+        
+        <div id="modalContent" class="space-y-5 overflow-y-auto mb-3 pr-2 flex-grow"></div>
+
+        <button onclick="closeDayModal()" class="w-full bg-rose-950 hover:bg-rose-800 text-white py-2.5 rounded-xl text-xs font-bold transition flex-shrink-0 shadow-lg">Pencereyi Kapat</button>
+    </div>
+</div>
+
+<script>
+    const months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+const now = new Date();
+let currentMonthIndex = now.getMonth(); 
+let currentYear = now.getFullYear();    
+
+let allMoviesGlobal = [
+        {% for m in all_movies | sort(attribute='title') %}
+        { id: {{ m.id }}, title: "{{ m.title | replace('"', '\\"') }}" },
+        {% endfor %}
+    ];
+
+    let allSeriesGlobal = [
+        {% for s in all_series | sort(attribute='title') %}
+        { id: {{ s.id }}, title: "{{ s.title | replace('"', '\\"') }}" },
+        {% endfor %}
+    ];
+
+    let friendsGlobal = [
+        {% for f in friends %}
+        { username: "{{ f.username }}" },
+        {% endfor %}
+    ];
+
+let allCalendarItems = [
+        {% for item in calendar_items %}
+        {
+            id: {{ item.id }},
+            movie_id: {{ item.movie_id }},
+            title: "{{ item.movie.title | replace('"', '\\"') }}",
+            poster_url: "{{ item.movie.poster_url }}",
+            director: "{{ item.movie.director | replace('"', '\\"') }}",
+            scheduled_date: "{{ item.scheduled_date }}",
+            time_slot: "{{ item.time_slot }}",
+            partner_name: "{{ item.partner_name if item.partner_name else '' }}",
+            is_watched: {{ 'true' if item.is_watched else 'false' }},
+            user_rating: {{ item.user_rating if item.user_rating else 0.0 }},
+            user_comment: "{{ item.user_comment | default('', true) | replace('\n', ' ') | replace('"', '\\"') }}",
+            user_favorite: {{ 'true' if item.user_favorite else 'false' }},
+            partner_rating: {{ item.partner_rating if item.partner_rating else 0.0 }},
+            partner_comment: "{{ item.partner_comment | default('', true) | replace('\n', ' ') | replace('"', '\\"') }}",
+            partner_favorite: {{ 'true' if item.partner_favorite else 'false' }},
+            is_series: false
+        },
+        {% endfor %}
+        
+        /* --- YENİ: DİZİ TAKVİM ÖĞELERİ --- */
+        {% for item in series_calendar_items %}
+        {
+            id: {{ item.id }},
+            movie_id: {{ item.series_id }},
+            title: "{{ item.series.title | replace('"', '\\"') }}",
+            poster_url: "{{ item.series.poster_url }}",
+            director: "{{ item.series.creator | default('', true) | replace('"', '\\"') }}",
+            scheduled_date: "{{ item.scheduled_date }}",
+            time_slot: "{{ item.time_slot }}",
+            partner_name: "{{ item.partner_name if item.partner_name else '' }}",
+            is_watched: {{ 'true' if item.is_watched else 'false' }},
+            user_rating: {{ item.user_rating if item.user_rating else 0.0 }},
+            user_comment: "{{ item.user_comment | default('', true) | replace('\n', ' ') | replace('"', '\\"') }}",
+            user_favorite: {{ 'true' if item.user_favorite else 'false' }},
+            partner_rating: {{ item.partner_rating if item.partner_rating else 0.0 }},
+            partner_comment: "{{ item.partner_comment | default('', true) | replace('\n', ' ') | replace('"', '\\"') }}",
+            partner_favorite: {{ 'true' if item.partner_favorite else 'false' }},
+            is_series: true
+        },
+        {% endfor %}
+    ];
+
+    function getDaysInMonth(month, year) {
+        return new Date(year, month + 1, 0).getDate();
+    }
+
+    
+    function renderCalendar() {
+        document.getElementById('currentMonthTitle').innerText = months[currentMonthIndex] + " " + currentYear + " Aylık Program";
+        let grid = document.getElementById('calendarGrid');
+        grid.innerHTML = "";
+
+        let totalDays = getDaysInMonth(currentMonthIndex, currentYear);
+        
+        // Dinamik olarak bugünün tarihini alıyoruz (YYYY-MM-DD formatında)
+        const nowLocal = new Date();
+        let yyyy = nowLocal.getFullYear();
+        let mm = String(nowLocal.getMonth() + 1).padStart(2, '0');
+        let dd = String(nowLocal.getDate()).padStart(2, '0');
+        let todayStr = `${yyyy}-${mm}-${dd}`;
+
+        for (let day = 1; day <= totalDays; day++) {
+            let mStr = String(currentMonthIndex + 1).padStart(2, '0');
+            let dStr = String(day).padStart(2, '0');
+            let dateStr = `${currentYear}-${mStr}-${dStr}`;
+            
+            let isToday = (dateStr === todayStr);
+            let isPast = (dateStr < todayStr);
+
+            let dayMovies = allCalendarItems.filter(item => item.scheduled_date === dateStr);
+            
+            let moviesHtml = '';
+            dayMovies.forEach(item => {
+                let ratingDisplay = '';
+                if (item.user_rating > 0 && item.partner_rating > 0) {
+                    let avg = ((item.user_rating + item.partner_rating) / 2).toFixed(1);
+                    ratingDisplay = `<span class="text-[10px] text-amber-400 font-bold ml-1">★ ${avg}</span>`;
+                } else if (item.user_rating > 0) {
+                    ratingDisplay = `<span class="text-[10px] text-amber-400 font-bold ml-1">★ ${item.user_rating}</span>`;
+                } else if (item.partner_rating > 0) {
+                    ratingDisplay = `<span class="text-[10px] text-amber-400 font-bold ml-1">★ ${item.partner_rating}</span>`;
+                }
+
+                let isOverdueUnwatched = (isPast && !item.is_watched);
+                let movieBoxBorder = isOverdueUnwatched ? 'border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.7)]' : (item.is_watched ? 'border-emerald-500 bg-emerald-500/15' : 'border-white/15 bg-black/80');
+
+                let partnerHtml = '';
+                if (item.partner_name && item.partner_name !== "Yalnız / Belirtilmemiş" && item.partner_name !== "Yalnız" && item.partner_name !== "") {
+                    partnerHtml = `<span class="text-[9px] text-amber-300 font-medium block mt-0.5"> w/${item.partner_name} </span>`;
+                }
+
+                moviesHtml += `
+                    <div class="p-2 rounded-lg border ${movieBoxBorder} flex items-center gap-3">
+                        <img src="${item.poster_url}" class="w-10 h-14 object-cover rounded shadow flex-shrink-0">
+                        <div class="w-full">
+                            <p class="text-xs font-bold text-white leading-tight break-words">${item.title}</p>
+                            ${partnerHtml}
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-[10px] text-emerald-400 font-semibold">${item.time_slot}</span>
+                                ${ratingDisplay}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            let dayCard = document.createElement('div');
+            let dayHeaderClass = isToday ? 'text-purple-400 underline font-extrabold' : 'text-slate-300 font-bold';
+            let todayStyle = isToday ? 'border: 2px solid #a855f7; box-shadow: 0 0 15px rgba(168,85,247,0.5);' : '';
+
+            dayCard.className = `bg-black/40 border border-white/10 rounded-2xl p-4 flex flex-col justify-between hover:border-amber-400/50 transition cursor-pointer min-h-[160px] relative ${isToday ? 'bg-purple-950/20' : ''}`;
+            dayCard.style.cssText = todayStyle;
+
+            dayCard.setAttribute('data-date-str', dateStr);
+            dayCard.setAttribute('data-date-title', `${day} ${months[currentMonthIndex]} ${currentYear}`);
+            dayCard.setAttribute('data-movies', JSON.stringify(dayMovies.map(m => m.id)));
+            dayCard.setAttribute('data-movieids', JSON.stringify(dayMovies.map(m => m.movie_id)));
+            dayCard.setAttribute('data-titles', JSON.stringify(dayMovies.map(m => m.title)));
+            dayCard.setAttribute('data-posters', JSON.stringify(dayMovies.map(m => m.poster_url)));
+            dayCard.setAttribute('data-directors', JSON.stringify(dayMovies.map(m => m.director)));
+            dayCard.setAttribute('data-times', JSON.stringify(dayMovies.map(m => m.time_slot)));
+            dayCard.setAttribute('data-partners', JSON.stringify(dayMovies.map(m => m.partner_name)));
+            dayCard.setAttribute('data-watched', JSON.stringify(dayMovies.map(m => m.is_watched)));
+            dayCard.setAttribute('data-userrating', JSON.stringify(dayMovies.map(m => m.user_rating)));
+            dayCard.setAttribute('data-usercomment', JSON.stringify(dayMovies.map(m => m.user_comment)));
+            dayCard.setAttribute('data-userfav', JSON.stringify(dayNames = dayMovies.map(m => m.user_favorite)));
+            dayCard.setAttribute('data-userrating', JSON.stringify(dayMovies.map(m => m.user_rating)));
+            dayCard.setAttribute('data-usercomment', JSON.stringify(dayMovies.map(m => m.user_comment)));
+            dayCard.setAttribute('data-userfav', JSON.stringify(dayMovies.map(m => m.user_favorite)));
+            dayCard.setAttribute('data-partrating', JSON.stringify(dayMovies.map(m => m.partner_rating)));
+            dayCard.setAttribute('data-partcomment', JSON.stringify(dayMovies.map(m => m.partner_comment)));
+            dayCard.setAttribute('data-partfav', JSON.stringify(dayMovies.map(m => m.partner_favorite)));
+            dayCard.setAttribute('data-isseries', JSON.stringify(dayMovies.map(m => m.is_series)));
+            dayCard.innerHTML = `
+                <span class="text-xs ${dayHeaderClass}">${day} ${months[currentMonthIndex]} ${isToday ? '(Bugün)' : ''}</span>
+                <div class="flex flex-col gap-2.5 my-2.5">${moviesHtml}</div>
+                <span class="text-[9px] text-slate-500 uppercase tracking-widest text-right font-semibold">Plan</span>
+            `;
+
+            dayCard.addEventListener('click', function() {
+                openDayModalFromCard(this);
+            });
+
+            grid.appendChild(dayCard);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        renderCalendar();
+
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        let todayStr = `${yyyy}-${mm}-${dd}`;
+        let todayUnwatchedMovies = allCalendarItems.filter(item => item.scheduled_date === todayStr && !item.is_watched);
+        if (todayUnwatchedMovies.length > 0) {
+            openTodayTicketModal(todayUnwatchedMovies[0]);
+        }
+    });
+function openTodayTicketModal(movieItem) {
+    const currentUsername = "{{ current_user.username }}";
+    let hasPartner = movieItem.partner_name && movieItem.partner_name !== "Yalnız / Belirtilmemiş" && movieItem.partner_name !== "";
+    let seatInfo = hasPartner ? "VIP ROW 02 · SEAT 01-02" : "VIP ROW 01 · SEAT 01";
+    let directorText = movieItem.director ? `STARRING / DIRECTOR: ${movieItem.director.toUpperCase()}` : "AN EXCLUSIVE CINEMA SCREENING";
+    let attendeesText = hasPartner ? `GUEST / AUDIENCE: ${currentUsername} & ${movieItem.partner_name}` : `GUEST / AUDIENCE: ${currentUsername}`;
+
+    let container = document.getElementById('ticketContainer');
+    container.innerHTML = `
+        <div class="relative flex flex-col sm:flex-row bg-[#1a1614] rounded-xl overflow-hidden font-serif text-[#3b2617] border-2 border-[#111] w-full max-w-md sm:max-w-2xl mx-auto shadow-2xl">
+            
+            <!-- Sol Kısım -->
+            <div class="flex-grow bg-[#dfc38a] p-4 sm:p-6 relative flex flex-col justify-between border-b-2 sm:border-b-0 sm:border-r-2 border-dashed border-[#5a3e2b]/50">
+                <div class="absolute inset-2 border border-[#5a3e2b]/30 rounded pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center border-b border-[#3b2617]/20 pb-2 mb-2">
+                        <span class="text-[9px] uppercase tracking-[0.2em] font-sans font-bold text-[#5a3e2b]">Berilay PICTURES PRESENTS</span>
+                    </div>
+
+                    <div class="my-2 sm:my-3 text-center">
+                        <p class="text-[10px] text-[#5a3e2b] italic font-serif">An exclusive screening of</p>
+                        <h3 class="text-xl sm:text-3xl font-serif italic font-bold text-[#3b2617] tracking-wide my-1">
+                            "${movieItem.title}"
+                        </h3>
+                        <div class="my-2 border-b border-[#3b2617]/25 w-full"></div>
+                        <p class="text-[9px] sm:text-[10px] font-sans uppercase tracking-[0.15em] text-[#5a3e2b] font-semibold">${directorText}</p>
+                        
+                        <p class="text-[9px] sm:text-[10px] font-sans uppercase tracking-[0.12em] text-rose-900 font-bold mt-2">${attendeesText}</p>
+                    </div>
+                </div>
+
+                <div class="relative z-10 mt-3 sm:mt-4 pt-2 border-t border-[#3b2617]/20 flex justify-between items-end text-[10px] sm:text-[11px] font-sans">
+                    <div>
+                        <p class="text-[8px] sm:text-[9px] text-[#5a3e2b] uppercase tracking-wider font-bold">SHOWTIME</p>
+                        <p class="font-bold text-[#3b2617] font-mono">${movieItem.scheduled_date} · ${movieItem.time_slot}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[8px] sm:text-[9px] text-[#5a3e2b] uppercase tracking-wider font-bold">THEATRE</p>
+                        <p class="font-bold text-[#3b2617]">OLD HOLLYWOOD STAGE</p>
+                    </div>
+                </div>
+
+                <div class="relative z-10 mt-2 text-[7px] sm:text-[8px] uppercase tracking-wider text-[#5a3e2b] font-sans italic text-center">
+                    RED CARPET ATTIRE REQUIRED · VINTAGE GLAMOUR · TIMELESS CINEMA
+                </div>
+            </div>
+
+            <!-- Sağ Kısım (Bilet Parçası) -->
+            <div class="w-full sm:w-44 bg-[#dfc38a] p-4 flex flex-col justify-between items-center text-center relative">
+                <div class="absolute inset-2 border border-[#5a3e2b]/30 rounded pointer-events-none"></div>
+                
+                <div class="w-full relative z-10">
+                    <span class="text-[9px] font-mono text-[#5a3e2b] block">${movieItem.scheduled_date.replace(/-/g, '.')}</span>
+                    
+                    <div class="my-2 sm:my-3 bg-[#1a1614] text-[#dfc38a] py-2 px-3 rounded shadow-md border border-[#3b2617]">
+                        <span class="text-[9px] font-black tracking-[0.2em] uppercase block font-serif">★ ADMIT ONE ★</span>
+                    </div>
+
+                    <span class="text-[9px] font-sans font-bold text-[#5a3e2b] block uppercase tracking-wider mt-1">${seatInfo}</span>
+                </div>
+
+                <div class="w-full relative z-10 mt-3 pt-2 border-t border-[#3b2617]/20 flex flex-col items-center">
+                    <span class="font-mono text-[9px] text-[#5a3e2b] tracking-widest">No. 5284112</span>
+                    <div class="flex gap-1.5 mt-2 w-full justify-center">
+                        <a href="/movie/${movieItem.movie_id}" class="flex-1 bg-[#3b2617] hover:bg-black text-[#dfc38a] py-1.5 rounded text-[10px] font-bold font-sans transition shadow text-center">İncele</a>
+                        <button onclick="closeTodayTicketModal()" class="flex-1 bg-rose-700 hover:bg-rose-800 text-white py-1.5 rounded text-[10px] font-bold font-sans transition shadow">Kapat</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    `;
+    document.getElementById('todayTicketModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+    function closeTodayTicketModal() {
+        document.getElementById('todayTicketModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function changeMonth(direction) {
+        currentMonthIndex += direction;
+        if (currentMonthIndex > 11) { currentMonthIndex = 0; currentYear++; }
+        else if (currentMonthIndex < 0) { currentMonthIndex = 11; currentYear--; }
+        renderCalendar();
+    }
+
+    function openFilmStripModal() { 
+        document.getElementById('filmStripModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeFilmStripModal() { 
+        document.getElementById('filmStripModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+function openDayModalFromCard(card) {
+        let dateTitle = card.getAttribute('data-date-title');
+        let dateStr = card.getAttribute('data-date-str');
+        let ids = JSON.parse(card.getAttribute('data-movies'));
+        let movieIds = JSON.parse(card.getAttribute('data-movieids'));
+        let titles = JSON.parse(card.getAttribute('data-titles'));
+        let posters = JSON.parse(card.getAttribute('data-posters'));
+        let directors = JSON.parse(card.getAttribute('data-directors') || '[]');
+        let times = JSON.parse(card.getAttribute('data-times'));
+        let partners = JSON.parse(card.getAttribute('data-partners'));
+        let watchedList = JSON.parse(card.getAttribute('data-watched'));
+        let userRatings = JSON.parse(card.getAttribute('data-userrating'));
+        let userComments = JSON.parse(card.getAttribute('data-usercomment'));
+        let userFavs = JSON.parse(card.getAttribute('data-userfav'));
+        let partRatings = JSON.parse(card.getAttribute('data-partrating'));
+        let partComments = JSON.parse(card.getAttribute('data-partcomment'));
+        let partFavs = JSON.parse(card.getAttribute('data-partfav'));
+        let isSeriesList = JSON.parse(card.getAttribute('data-isseries') || '[]');
+
+        document.getElementById('modalTitle').innerText = dateTitle + " Programı ve Değerlendirmeler";
+        let contentDiv = document.getElementById('modalContent');
+        contentDiv.innerHTML = "";
+
+        let moviesOptions = allMoviesGlobal.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
+        let seriesOptions = allSeriesGlobal.map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+        let friendsOptions = friendsGlobal.map(f => `<option value="${f.username}">${f.username}</option>`).join('');
+
+        // 1. O güne ait mevcut planlar varsa sırayla yazdıralım
+        if (titles.length === 0) {
+            contentDiv.innerHTML += `<p class='text-slate-400 text-sm text-center py-2'>Bu tarihte henüz planlanmış içerik bulunmuyor.</p>`;
+        } else {
+  for (let i = 0; i < titles.length; i++) {
+            let partnerName = partners[i] ? partners[i] : "";
+            let hasPartner = partnerName !== "" && partnerName !== "Yalnız / Belirtilmemiş";
+            let isWatched = watchedList[i];
+            let uRating = userRatings[i] || 0;
+            let pRating = partRatings[i] || 0;
+            let uFav = userFavs[i] ? true : false;
+            let pFav = partFavs[i] ? true : false;
+            let dirName = directors[i] ? directors[i] : "";
+            
+            // Dizi veya film kontrolü doğru yerde yapılıyor
+            let isSeriesItem = isSeriesList[i];
+            let formActionUrl = isSeriesItem ? `/update_series_journal_review/${ids[i]}` : `/update_journal_review/${ids[i]}`;
+            let toggleWatchUrl = isSeriesItem ? `/toggle_series_watch/${ids[i]}` : `/toggle_watch/${ids[i]}`; 
+            
+            // İÇERİK TÜRÜNE GÖRE DOĞRU DETAY LİNKİ (Film veya Dizi)
+            let detailUrl = isSeriesItem ? `/series/${movieIds[i]}` : `/movie/${movieIds[i]}`;
+            
+            let gridColsClass = hasPartner ? "lg:grid-cols-3" : "lg:grid-cols-2";
+
+            let html = `
+                <div class="bg-black/50 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col gap-4 mb-4">
+                    <form action="${formActionUrl}" method="POST" class="space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/10 pb-3 gap-3">
+                            <div>
+                                <a href="${detailUrl}" class="hover:underline">
+                                    <h4 class="font-serif font-bold text-white text-lg">${titles[i]}</h4>
+                                </a>
+                                <p class="text-xs text-emerald-400 mt-0.5 font-semibold">İzleme Saati: ${times[i]} ${hasPartner ? '| Eşlikçi: ' + partnerName : '| Yalnız İzleme'}</p>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <a href="${toggleWatchUrl}" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${isWatched ? 'bg-emerald-600 text-white' : 'bg-white/10 text-slate-200 hover:bg-white/20'}">
+                                    ${isWatched ? 'İzlendi Olarak İşaretlendi (İptal Et)' : 'İzlendi Olarak Onayla'}
+                                </a>
+                                <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-xl text-xs font-bold transition shadow-md">Değerlendirmeyi Kaydet</button>
+                                <button type="button" onclick="confirmDelete(${ids[i]})" class="bg-rose-950 hover:bg-rose-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition shadow border border-rose-800/50 flex items-center justify-center" title="Planı Sil">✕</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 ${gridColsClass} gap-5 items-stretch">
+                            <div class="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col space-y-4">
+                                <div>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <span class="text-xs font-bold text-rose-400 uppercase tracking-wider">Senin Değerlendirmen</span>
+                                        <label class="cursor-pointer flex items-center">
+                                            <input type="checkbox" name="user_favorite" ${uFav ? 'checked' : ''} class="hidden peer">
+                                            <svg class="favorite-heart w-7 h-7 text-slate-500 peer-checked:text-red-500 fill-transparent peer-checked:fill-red-500" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                            </svg>
+                                        </label>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="block text-[10px] text-slate-400 uppercase mb-1">Puan</label>
+                                        <div class="star-rating" data-input-id="user_rating_${i}">
+                                            ${generateStarsHtml(uRating)}
+                                        </div>
+                                        <input type="hidden" name="user_rating" id="user_rating_${i}" value="${uRating}">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 uppercase mb-1">Yorumun</label>
+                                    <textarea name="user_comment" placeholder="Film/Dizi hakkındaki düşüncelerin..." class="auto-textarea w-full bg-[#14181c] border border-white/15 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-rose-500">${userComments[i] ? userComments[i] : ''}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col items-center justify-center text-center">
+                                <a href="${detailUrl}">
+                                    <img src="${posters[i]}" class="w-52 h-76 object-cover rounded-2xl shadow-[0_10px_25px_rgba(0,0,0,0.8)] border border-white/15 mb-2.5 hover:scale-105 transition duration-300">
+                                </a>
+                                <a href="${detailUrl}">
+                                    <span class="text-sm font-serif font-bold text-white tracking-wider hover:underline block">${titles[i]}</span>
+                                </a>
+                                ${dirName ? `<span class="text-[11px] text-slate-400 mt-0.5">Yönetmen/Yapımcı: ${dirName}</span>` : ''}
+                            </div>
+
+                            ${hasPartner ? `
+                            <div class="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col space-y-4">
+                                <div>
+                                    <div class="flex justify-between items-center mb-3">
+                                        <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">${partnerName} Değerlendirmesi</span>
+                                        <div class="flex items-center">
+                                            <svg class="favorite-heart w-7 h-7 ${pFav ? 'text-red-500 fill-red-500' : 'text-slate-600 fill-transparent'}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="block text-[10px] text-slate-400 uppercase mb-1">Puan</label>
+                                        <div class="flex gap-1 text-amber-400 text-lg">
+                                            ${renderStaticStars(pRating)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 uppercase mb-1">Yorumu</label>
+                                    <textarea readonly placeholder="${partnerName} henüz yorum yapmadı..." class="auto-textarea w-full bg-[#14181c]/50 border border-white/10 rounded-lg p-2.5 text-xs text-slate-400 focus:outline-none cursor-not-allowed">${partComments[i] ? partComments[i] : ''}</textarea>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                        </div>
+                    </form>
+                </div>
+            `;
+            contentDiv.innerHTML += html;
+        }
+        }
+
+// 2. HER DURUMDA ALT KISMA YENİ PLAN EKLEME FORMU EKLENİYOR
+        let assignFormHtml = `
+            <div class="bg-black/60 border border-amber-500/30 rounded-2xl p-5 max-w-xl mx-auto text-left shadow-xl mt-6">
+                <h4 class="text-xs font-serif font-bold text-amber-300 uppercase tracking-wider mb-3">Bu Güne Yeni Film veya Dizi Planla</h4>
+                <form action="/journal/assign" method="POST" class="space-y-3">
+                    <input type="hidden" name="scheduled_date" value="${dateStr}">
+                    
+                    <div>
+                        <label class="block text-xs uppercase tracking-widest text-slate-400 mb-1.5 font-semibold">Film Seç</label>
+                        <select name="movie_id" class="w-full bg-[#14181c] border border-white/15 rounded-xl p-2.5 text-slate-200 text-xs focus:outline-none focus:border-rose-500">
+                            <option value="">Film Seçilmedi</option>
+                            ${moviesOptions}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs uppercase tracking-widest text-slate-400 mb-1.5 font-semibold">Dizi Seç</label>
+                        <select name="series_id" class="w-full bg-[#14181c] border border-white/15 rounded-xl p-2.5 text-slate-200 text-xs focus:outline-none focus:border-rose-500">
+                            <option value="">Dizi Seçilmedi</option>
+                            ${seriesOptions}
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs uppercase tracking-widest text-slate-400 mb-1.5 font-semibold">Eşlikçi</label>
+                            <select name="partner_name" class="w-full bg-[#14181c] border border-white/15 rounded-xl p-2.5 text-slate-200 text-xs focus:outline-none focus:border-rose-500">
+                                <option value="">Yalnız</option>
+                                ${friendsOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-widest text-slate-400 mb-1.5 font-semibold">Saat</label>
+                            <input type="time" name="time_slot" value="20:00" class="w-full bg-[#14181c] border border-white/15 rounded-xl p-2 text-slate-200 text-xs [color-scheme:dark]">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 py-2.5 rounded-xl text-xs font-bold transition shadow-md mt-2">Takvime Ekle</button>
+                </form>
+            </div>
+        `;
+        contentDiv.innerHTML += assignFormHtml;
+
+        initStarRatings();
+
+        setTimeout(() => {
+            contentDiv.querySelectorAll('.auto-textarea').forEach(textarea => {
+                textarea.style.height = 'auto';
+                textarea.style.height = (textarea.scrollHeight) + 'px';
+            });
+        }, 10);
+        document.getElementById('dayModal').classList.remove('hidden');
+    }
+
+    function confirmDelete(itemId) {
+        let modalHtml = `
+            <div id="customConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                <div class="bg-[#14181c] border border-amber-500/40 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4">
+                    <h3 class="text-base font-serif font-bold text-amber-300">Planı Sil</h3>
+                    <p class="text-xs text-slate-300">Bu film planını silmek istediğinize emin misiniz?</p>
+                    <div class="flex gap-3 justify-center mt-4">
+                        <button onclick="document.getElementById('customConfirmModal').remove()" class="bg-white/10 hover:bg-white/20 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition">Vazgec</button>
+                        <form action="/remove_journal_item/${itemId}" method="POST">
+                            <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition shadow">Evet, Sil</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    function generateStarsHtml(rating) {
+        let html = '';
+        for (let s = 1; s <= 5; s++) {
+            let fillClass = '';
+            if (rating >= s) {
+                fillClass = 'filled';
+            } else if (rating >= s - 0.5) {
+                fillClass = 'half';
+            }
+            html += `<span class="star ${fillClass}" data-value="${s}">★</span>`;
+        }
+        return html;
+    }
+
+    function renderStaticStars(rating) {
+        let html = '';
+        for (let s = 1; s <= 5; s++) {
+            let color = (rating >= s) ? 'text-amber-400 filter drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]' : ((rating >= s - 0.5) ? 'text-amber-400 filter drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]' : 'text-slate-600');
+            html += `<span class="${color}">★</span>`;
+        }
+        return html;
+    }
+
+    function initStarRatings() {
+        document.querySelectorAll('.star-rating').forEach(container => {
+            const stars = container.querySelectorAll('.star');
+            const hiddenInput = document.getElementById(container.getAttribute('data-input-id'));
+
+            stars.forEach((star, index) => {
+                star.addEventListener('mousemove', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const isHalf = e.clientX - rect.left < rect.width / 2;
+                    const starValue = index + (isHalf ? 0.5 : 1.0);
+                    updateStarsVisual(stars, starValue);
+                });
+
+                star.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const isHalf = e.clientX - rect.left < rect.width / 2;
+                    const starValue = index + (isHalf ? 0.5 : 1.0);
+                    hiddenInput.value = starValue;
+                    updateStarsVisual(stars, starValue);
+                });
+            });
+
+            container.addEventListener('mouseleave', function() {
+                updateStarsVisual(stars, parseFloat(hiddenInput.value || 0));
+            });
+        });
+    }
+
+    function updateStarsVisual(stars, rating) {
+        stars.forEach((star, index) => {
+            star.className = 'star';
+            if (rating >= index + 1) {
+                star.classList.add('filled');
+            } else if (rating >= index + 0.5) {
+                star.classList.add('half');
+            }
+        });
+    }
+
+    function closeDayModal() { 
+        document.getElementById('dayModal').classList.add('hidden'); 
+    }
+
+    document.addEventListener("input", function (event) {
+    if (event.target.classList.contains('auto-textarea')) {
+        event.target.style.height = 'auto';
+        event.target.style.height = (event.target.scrollHeight) + 'px';
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('.auto-textarea').forEach(textarea => {
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    });
+});
+
+</script>
+
+{% endblock %}
