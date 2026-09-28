@@ -21,19 +21,16 @@ Bu proje; kullanıcıların izledikleri veya izlemek istedikleri filmleri ve diz
 * **Harici Servisler:** The Movie Database (TMDb) API
 
 ---
+## 📂 Proje Yapısı
 
-Proje Yapısı
-
+```text
 film/
 │
 ├── instance/
 │   └── film_serisi.db       # SQLite Veritabanı
 ├── static/                  # Statik dosyalar (CSS, JS, Görseller)
-├── templates/               # HTML Arayüz Şablonları
+├── templates/               # HTML Arayüz Şablonları (Jinja2)
 ├── app.py                   # Flask ana uygulama ve rotalar
 ├── init_db.py               # Veritabanı tablo oluşturma betiği
 ├── populate_actors.py       # TMDb API veri çekme otomasyonu
 └── requirements.txt         # Proje bağımlılıkları
-
-Geliştirme Aşaması
-Proje şu an aktif olarak geliştirilme ve lokal test aşamasındadır. Yeni özellikler eklendikçe güncellenmeye devam edecektir.
