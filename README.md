@@ -35,7 +35,7 @@ film/
 ├── init_db.py               # Database table creation script
 ├── populate_actors.py       # TMDb API data fetching automation
 └── requirements.txt         # Project dependencies
-
+```
 
 # 🎬 Film & Dizi Takip ve Planlama Platformu
 
